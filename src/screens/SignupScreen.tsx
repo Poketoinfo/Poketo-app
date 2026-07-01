@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+
 import type { RootStackParamList } from '../navigation/types';
 import Logo from '../components/Logo';
 import TextField from '../components/TextField';
@@ -59,7 +60,6 @@ export default function SignupScreen({ navigation }: Props) {
       return;
     }
 
-    // Enregistrement du profil dans la table "profiles" (à créer côté Supabase)
     if (data.user) {
       await supabase.from('profiles').insert({
         id: data.user.id,
@@ -75,30 +75,35 @@ export default function SignupScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Logo size={90} />
-            <Text style={styles.title}>Créer un compte</Text>
-            <Text style={styles.subtitle}>Rejoins POKLY en quelques secondes</Text>
+            <View style={styles.logoContainer}>
+              <Logo size={110} />
+            </View>
+            <Text style={styles.welcomeText}>Rejoignez l'aventure</Text>
+            <Text style={styles.subtitle}>
+              Créez votre compte pour commencer à collectionner
+            </Text>
           </View>
 
           <View style={styles.form}>
             <TextField
               label="Nom d'utilisateur"
-              placeholder="ex : pokly_user"
+              placeholder="ex: pokly_master"
               autoCapitalize="none"
               value={username}
               onChangeText={setUsername}
             />
             <TextField
-              label="E-mail"
-              placeholder="toi@exemple.com"
+              label="Adresse e-mail"
+              placeholder="vous@exemple.com"
               autoCapitalize="none"
               keyboardType="email-address"
               value={email}
@@ -106,27 +111,38 @@ export default function SignupScreen({ navigation }: Props) {
             />
             <TextField
               label="Mot de passe"
-              placeholder="6 caractères minimum"
+              placeholder="Minimum 6 caractères"
               secureTextEntry
               value={password}
               onChangeText={setPassword}
             />
 
-            {!!error && <Text style={styles.error}>{error}</Text>}
+            {!!error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorMessage}>{error}</Text>
+              </View>
+            )}
 
             <PrimaryButton
-              title="S'inscrire"
+              title="Créer mon compte"
               onPress={handleSignup}
               loading={loading}
-              style={{ marginTop: spacing.sm }}
+              style={styles.signupButton}
             />
           </View>
 
-          <Pressable style={styles.footer} onPress={() => navigation.goBack()}>
-            <Text style={styles.footerText}>
-              Déjà un compte ? <Text style={styles.footerLink}>Se connecter</Text>
-            </Text>
-          </Pressable>
+          <View style={styles.footer}>
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>ou</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <Text style={styles.footerText}>Déjà membre POKLY ?</Text>
+            <Pressable style={styles.loginLink} onPress={() => navigation.goBack()}>
+              <Text style={styles.loginLinkText}>Se connecter</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -136,47 +152,90 @@ export default function SignupScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.background || colors.white,
   },
-  scroll: {
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.xl,
     justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.xxl,
   },
-  title: {
-    ...typography.h2,
+  logoContainer: {
+    marginBottom: spacing.md,
+  },
+  welcomeText: {
+    ...typography.h1,
     color: colors.text,
-    marginTop: spacing.md,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.body,
     color: colors.textSecondary,
-    marginTop: spacing.xs,
+    fontSize: 16,
+    fontWeight: '400',
+    textAlign: 'center',
   },
   form: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
-  error: {
-    color: colors.error,
-    ...typography.small,
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
+    padding: spacing.sm,
     marginBottom: spacing.sm,
+  },
+  errorMessage: {
+    color: colors.error || '#DC2626',
+    ...typography.small,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  signupButton: {
+    marginTop: spacing.sm,
   },
   footer: {
     alignItems: 'center',
-    marginTop: spacing.sm,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border || '#E5E7EB',
+  },
+  dividerText: {
+    ...typography.small,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.md,
+    fontWeight: '500',
   },
   footerText: {
     ...typography.body,
     color: colors.textSecondary,
+    fontSize: 15,
+    marginBottom: spacing.xs,
   },
-  footerLink: {
+  loginLink: {
+    paddingVertical: spacing.xs,
+  },
+  loginLinkText: {
+    ...typography.body,
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });

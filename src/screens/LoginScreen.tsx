@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+
 import type { RootStackParamList } from '../navigation/types';
 import Logo from '../components/Logo';
 import TextField from '../components/TextField';
@@ -50,23 +51,24 @@ export default function LoginScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Logo size={90} />
-            <Text style={styles.title}>Connexion</Text>
-            <Text style={styles.subtitle}>Content de te revoir sur POKLY</Text>
+            <Logo size={100} />
+            <Text style={styles.title}>Bienvenue</Text>
+            <Text style={styles.subtitle}>Connectez-vous à votre compte</Text>
           </View>
 
           <View style={styles.form}>
             <TextField
-              label="E-mail"
-              placeholder="toi@exemple.com"
+              label="Adresse e-mail"
+              placeholder="vous@exemple.com"
               autoCapitalize="none"
               keyboardType="email-address"
               value={email}
@@ -80,23 +82,23 @@ export default function LoginScreen({ navigation }: Props) {
               onChangeText={setPassword}
             />
 
-            {!!error && <Text style={styles.error}>{error}</Text>}
+            {!!error && <Text style={styles.errorMessage}>{error}</Text>}
 
             <PrimaryButton
               title="Se connecter"
               onPress={handleLogin}
               loading={loading}
-              style={{ marginTop: spacing.sm }}
+              style={styles.loginButton}
             />
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Pas encore de compte ?</Text>
+            <Text style={styles.footerText}>Vous n'avez pas de compte ?</Text>
             <PrimaryButton
-              title="Créer un compte"
+              title="S'inscrire"
               onPress={() => navigation.navigate('Signup')}
               variant="outline"
-              style={{ marginTop: spacing.sm }}
+              style={styles.signupButton}
             />
           </View>
         </ScrollView>
@@ -110,40 +112,58 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
   },
-  scroll: {
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.xl,
     justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.xxl,
   },
   title: {
-    ...typography.h2,
+    ...typography.h1,
     color: colors.text,
     marginTop: spacing.md,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   subtitle: {
     ...typography.body,
     color: colors.textSecondary,
     marginTop: spacing.xs,
+    fontSize: 16,
   },
   form: {
     marginBottom: spacing.xl,
   },
-  error: {
+  errorMessage: {
     color: colors.error,
     ...typography.small,
     marginBottom: spacing.sm,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  loginButton: {
+    marginTop: spacing.sm,
   },
   footer: {
     alignItems: 'center',
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   footerText: {
     ...typography.body,
     color: colors.textSecondary,
+    fontSize: 15,
+  },
+  signupButton: {
+    marginTop: spacing.sm,
   },
 });
