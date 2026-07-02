@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const colors = {
   primary: '#1E5EFF',
   primaryDark: '#123FBF',
@@ -29,6 +31,30 @@ export const radius = {
   md: 14,
   lg: 20,
   full: 999,
+};
+
+
+export const shadow = {
+  soft: Platform.select({
+    web: { boxShadow: '0px 4px 12px rgba(15, 23, 42, 0.06)' },
+    default: {
+      shadowColor: '#0F172A',
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
+    },
+  }),
+  fab: Platform.select({
+    web: { boxShadow: '0px 6px 14px rgba(30, 94, 255, 0.35)' },
+    default: {
+      shadowColor: '#1E5EFF',
+      shadowOpacity: 0.35,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 8,
+    },
+  }),
 };
 
 export const typography = {

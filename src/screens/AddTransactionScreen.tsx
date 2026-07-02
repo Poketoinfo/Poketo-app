@@ -18,22 +18,29 @@ import type { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme/colors';
 import PrimaryButton from '../components/PrimaryButton';
 import TextField from '../components/TextField';
+import DueDatePicker from '../components/DueDatePicker';
 import {
   TransactionType,
   addTransaction,
   uploadReceiptPhoto,
 } from '../lib/transactions';
 import { supabase } from '../lib/supabase';
+import { useCurrency } from '../lib/CurrencyContext';
+import { CURRENCIES } from '../lib/currency';
+import { scheduleDueDateReminders } from '../lib/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddTransaction'>;
 
 export default function AddTransactionScreen({ navigation }: Props) {
+  const { currency } = useCurrency();
+  const currencySymbol = CURRENCIES[currency].symbol;
   const [type, setType] = useState<TransactionType>('pret');
   const [amount, setAmount] = useState('');
   const [contactName, setContactName] = useState('');
   const [note, setNote] = useState('');
   const [showNoteField, setShowNoteField] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [dueDate, setDueDate] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -85,7 +92,19 @@ export default function AddTransactionScreen({ navigation }: Props) {
         contact_name: contactName.trim(),
         note: note.trim() || null,
         photo_url: photoUrl,
+        due_date: dueDate,
       });
+
+      // Planifie les rappels (J-5 et jour J) si une échéance est définie.
+      // Sans effet sur le web : Expo n'y supporte pas les notifications programmées.
+      if (dueDate) {
+        await scheduleDueDateReminders({
+          contactName: contactName.trim(),
+          amount: numericAmount,
+          type,
+          dueDateISO: dueDate,
+        });
+      }
 
       navigation.goBack();
     } catch (e: any) {
@@ -113,6 +132,7 @@ export default function AddTransactionScreen({ navigation }: Props) {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Sélection du type */}
           <Text style={styles.label}>Sélectionner le type</Text>
           <View style={styles.typeRow}>
             <Pressable
@@ -149,6 +169,7 @@ export default function AddTransactionScreen({ navigation }: Props) {
             </Pressable>
           </View>
 
+          {/* Montant */}
           <Text style={styles.label}>Montant</Text>
           <View style={styles.amountRow}>
             <TextInput
@@ -160,9 +181,10 @@ export default function AddTransactionScreen({ navigation }: Props) {
               onChangeText={setAmount}
               autoFocus
             />
-            <Text style={styles.amountSuffix}>€</Text>
+            <Text style={styles.amountSuffix}>{currencySymbol}</Text>
           </View>
 
+          {/* Contact */}
           <TextField
             label="À qui ? / De qui ?"
             placeholder="Entrez un nom... (ex: Paul)"
@@ -170,6 +192,19 @@ export default function AddTransactionScreen({ navigation }: Props) {
             onChangeText={setContactName}
           />
 
+          {/* Date d'échéance */}
+          <DueDatePicker
+            label="Date d'échéance (optionnel)"
+            value={dueDate}
+            onChange={setDueDate}
+          />
+          {!!dueDate && (
+            <Text style={styles.hint}>
+              Rappel automatique 5 jours avant, et alerte le jour même.
+            </Text>
+          )}
+
+          {/* Options */}
           <Text style={styles.label}>Options (optionnel)</Text>
 
           {showNoteField ? (
@@ -305,6 +340,12 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: radius.md,
     marginTop: spacing.sm,
+  },
+  hint: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
   },
   error: {
     ...typography.small,
