@@ -1,7 +1,7 @@
 export const colors = {
-  primary: '#1E5EFF',      // bleu principal
-  primaryDark: '#123FBF',  // bleu profond (pressed, accents)
-  primaryLight: '#EAF0FF', // bleu très pâle (fonds, champs)
+  primary: '#1E5EFF',
+  primaryDark: '#123FBF',
+  primaryLight: '#EAF0FF',
   background: '#FFFFFF',
   surface: '#F7F9FC',
   text: '#101828',
@@ -9,6 +9,10 @@ export const colors = {
   border: '#E4E7EC',
   error: '#E4362F',
   white: '#FFFFFF',
+  success: '#12A150',
+  successLight: '#E7F8EF',
+  danger: '#E4362F',
+  dangerLight: '#FDECEC',
 };
 
 export const spacing = {
