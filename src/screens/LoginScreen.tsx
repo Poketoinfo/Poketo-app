@@ -15,10 +15,12 @@ import TextField from '../components/TextField';
 import PrimaryButton from '../components/PrimaryButton';
 import { supabase } from '../lib/supabase';
 import { colors, spacing, typography } from '../theme/colors';
+import { useLanguage } from '../lib/i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -28,7 +30,7 @@ export default function LoginScreen({ navigation }: Props) {
     setError('');
 
     if (!email.trim() || !password) {
-      setError('Merci de remplir tous les champs.');
+      setError(t('errorFillFields'));
       return;
     }
 
@@ -59,22 +61,22 @@ export default function LoginScreen({ navigation }: Props) {
         >
           <View style={styles.header}>
             <Logo size={90} />
-            <Text style={styles.title}>Connexion</Text>
-            <Text style={styles.subtitle}>Content de te revoir sur POKLY</Text>
+            <Text style={styles.title}>{t('loginTitle')}</Text>
+            <Text style={styles.subtitle}>{t('loginSubtitle')}</Text>
           </View>
 
           <View style={styles.form}>
             <TextField
-              label="E-mail"
-              placeholder="toi@exemple.com"
+              label={t('emailLabel')}
+              placeholder={t('emailPlaceholder')}
               autoCapitalize="none"
               keyboardType="email-address"
               value={email}
               onChangeText={setEmail}
             />
             <TextField
-              label="Mot de passe"
-              placeholder="••••••••"
+              label={t('passwordLabel')}
+              placeholder={t('passwordPlaceholder')}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
@@ -83,7 +85,7 @@ export default function LoginScreen({ navigation }: Props) {
             {!!error && <Text style={styles.error}>{error}</Text>}
 
             <PrimaryButton
-              title="Se connecter"
+              title={t('loginButton')}
               onPress={handleLogin}
               loading={loading}
               style={{ marginTop: spacing.sm }}
@@ -91,9 +93,9 @@ export default function LoginScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Pas encore de compte ?</Text>
+            <Text style={styles.footerText}>{t('noAccount')}</Text>
             <PrimaryButton
-              title="Créer un compte"
+              title={t('createAccount')}
               onPress={() => navigation.navigate('Signup')}
               variant="outline"
               style={{ marginTop: spacing.sm }}

@@ -11,6 +11,11 @@ Notifications.setNotificationHandler({
   }),
 });
 
+/**
+ * Demande la permission d'envoyer des notifications.
+ * Sur le web, les notifications programmées ne sont pas supportées par Expo :
+ * on retourne simplement false sans bloquer le reste de l'app.
+ */
 export async function ensureNotificationPermission(): Promise<boolean> {
   if (Platform.OS === 'web') return false;
 
@@ -21,11 +26,18 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
+/**
+ * Programme deux rappels pour une transaction ayant une date d'échéance :
+ * - J-5 : notification de prévision
+ * - Jour J : notification finale
+ * Retourne les identifiants des notifications programmées (à sauvegarder
+ * si on veut pouvoir les annuler plus tard lors d'une modification/suppression).
+ */
 export async function scheduleDueDateReminders(params: {
   contactName: string;
   amount: number;
   type: 'pret' | 'dette';
-  dueDateISO: string;
+  dueDateISO: string; // "YYYY-MM-DD"
 }): Promise<{ reminderId: string | null; dueId: string | null }> {
   if (Platform.OS === 'web') {
     return { reminderId: null, dueId: null };
@@ -77,5 +89,7 @@ export async function cancelReminder(notificationId: string | null) {
   if (!notificationId || Platform.OS === 'web') return;
   try {
     await Notifications.cancelScheduledNotificationAsync(notificationId);
-  } catch {}
+  } catch {
+    // notification déjà passée ou inexistante, on ignore
+  }
 }

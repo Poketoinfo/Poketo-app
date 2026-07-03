@@ -6,12 +6,14 @@ import { colors, radius, spacing, typography } from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { supabase } from '../lib/supabase';
+import { useLanguage } from '../lib/i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
 const LOAD_DURATION = 2200;
 
 export default function SplashScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export default function SplashScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <View style={styles.center}>
         <Logo size={140} />
-        <Text style={styles.title}>POKLY</Text>
+        <Text style={styles.title}>{t('appName')}</Text>
       </View>
 
       <View style={styles.bottom}>

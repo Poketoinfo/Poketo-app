@@ -1,9 +1,7 @@
-import { Platform } from 'react-native';
-
 export const colors = {
-  primary: '#1E5EFF',
-  primaryDark: '#123FBF',
-  primaryLight: '#EAF0FF',
+  primary: '#1E5EFF',      // bleu principal
+  primaryDark: '#123FBF',  // bleu profond (pressed, accents)
+  primaryLight: '#EAF0FF', // bleu très pâle (fonds, champs)
   background: '#FFFFFF',
   surface: '#F7F9FC',
   text: '#101828',
@@ -33,6 +31,7 @@ export const radius = {
   full: 999,
 };
 
+import { Platform } from 'react-native';
 
 export const shadow = {
   soft: Platform.select({

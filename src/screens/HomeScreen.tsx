@@ -12,12 +12,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radius, shadow, spacing, typography } from '../theme/colors';
 import { formatAmount } from '../lib/currency';
 import { useCurrency } from '../lib/CurrencyContext';
+import { useLanguage } from '../lib/i18n/LanguageContext';
 import { daysUntil } from '../lib/date';
 import {
   Transaction,
@@ -29,6 +31,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
   const { currency } = useCurrency();
+  const { t } = useLanguage();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,15 +44,13 @@ export default function HomeScreen({ navigation }: Props) {
       setTransactions(data);
       setErrorMsg('');
     } catch (e: any) {
-      setErrorMsg(e.message ?? "Impossible de charger les opérations.");
+      setErrorMsg(e.message ?? t('errorGeneric'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  // Recharge la liste à chaque fois qu'on revient sur l'écran
-  // (par exemple après avoir ajouté ou modifié une transaction).
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
@@ -76,7 +77,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Barre du haut (fixe) */}
+      {/* Top Navigation Bar */}
       <View style={styles.topBar}>
         <Pressable
           onPress={() => navigation.navigate('Settings')}
@@ -85,17 +86,17 @@ export default function HomeScreen({ navigation }: Props) {
         >
           <Ionicons name="settings-outline" size={22} color={colors.text} />
         </Pressable>
-        <Text style={styles.brand}>POKLY</Text>
+        <Text style={styles.brand}>{t('appName')}</Text>
         <View style={styles.iconButton} />
       </View>
 
-      {/* Recherche (fixe, la liste scrolle sous elle) */}
+      {/* Search Bar */}
       <View style={styles.searchWrapper}>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un nom, une note..."
+            placeholder={t('searchPlaceholder')}
             placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={setSearch}
@@ -117,40 +118,40 @@ export default function HomeScreen({ navigation }: Props) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Balance globale */}
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>BALANCE GLOBALE</Text>
-          <Text
-            style={[
-              styles.balanceValue,
-              { color: balanceGlobale >= 0 ? colors.success : colors.error },
-            ]}
-          >
+        {/* Balance Card */}
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.balanceCard}
+        >
+          <Text style={styles.balanceLabel}>{t('balanceGlobal').toUpperCase()}</Text>
+          <Text style={styles.balanceValue}>
             {formatAmount(balanceGlobale, currency)}
           </Text>
-        </View>
+        </LinearGradient>
 
-        {/* Blocs On me doit / Je dois */}
+        {/* Summary Cards */}
         <View style={styles.row}>
           <View style={[styles.miniCard, { marginRight: spacing.sm }]}>
             <View style={[styles.miniDot, { backgroundColor: colors.success }]} />
-            <Text style={styles.miniLabel}>On me doit</Text>
+            <Text style={styles.miniLabel}>{t('onMeDoit')}</Text>
             <Text style={[styles.miniValue, { color: colors.success }]}>
               {formatAmount(onMeDoit, currency)}
             </Text>
           </View>
           <View style={styles.miniCard}>
             <View style={[styles.miniDot, { backgroundColor: colors.error }]} />
-            <Text style={styles.miniLabel}>Je dois</Text>
+            <Text style={styles.miniLabel}>{t('jeDois')}</Text>
             <Text style={[styles.miniValue, { color: colors.error }]}>
               {formatAmount(-jeDois, currency)}
             </Text>
           </View>
         </View>
 
-        {/* Dernières opérations */}
+        {/* Transactions List Header */}
         <Text style={styles.sectionTitle}>
-          {search ? `Résultats (${filtered.length})` : 'Dernières opérations'}
+          {search ? `${t('results')} (${filtered.length})` : t('recentOps')}
         </Text>
 
         {loading ? (
@@ -159,29 +160,28 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.error}>{errorMsg}</Text>
         ) : filtered.length === 0 ? (
           <Text style={styles.empty}>
-            {search
-              ? 'Aucune opération ne correspond à ta recherche.'
-              : "Aucune opération pour l'instant. Ajoute ta première avec le bouton +."}
+            {search ? t('noResults') : t('noOpsYet')}
           </Text>
         ) : (
           <View style={styles.list}>
-            {filtered.map((t) => {
-              const remaining = t.due_date ? daysUntil(t.due_date) : null;
+            {filtered.map((t2) => {
+              const remaining = t2.due_date ? daysUntil(t2.due_date) : null;
               const isUrgent = remaining !== null && remaining <= 5 && remaining >= 0;
               const isOverdue = remaining !== null && remaining < 0;
+              const accent = t2.type === 'pret' ? colors.success : colors.error;
 
               return (
                 <Pressable
-                  key={t.id}
-                  style={styles.operationRow}
-                  onPress={() => navigation.navigate('TransactionDetail', { id: t.id })}
+                  key={t2.id}
+                  style={[styles.operationRow, { borderLeftColor: accent }]}
+                  onPress={() => navigation.navigate('TransactionDetail', { id: t2.id })}
                 >
                   <View style={styles.operationIcon}>
-                    {t.photo_url ? (
-                      <Image source={{ uri: t.photo_url }} style={styles.thumb} />
+                    {t2.photo_url ? (
+                      <Image source={{ uri: t2.photo_url }} style={styles.thumb} />
                     ) : (
                       <Ionicons
-                        name={t.note ? 'document-text-outline' : 'person-outline'}
+                        name={t2.note ? 'document-text-outline' : 'person-outline'}
                         size={18}
                         color={colors.primary}
                       />
@@ -189,10 +189,10 @@ export default function HomeScreen({ navigation }: Props) {
                   </View>
 
                   <View style={styles.operationInfo}>
-                    <Text style={styles.operationName}>{t.contact_name}</Text>
+                    <Text style={styles.operationName}>{t2.contact_name}</Text>
                     <Text style={styles.operationType}>
-                      {t.type === 'pret' ? 'Prêt' : 'Dette'}
-                      {t.note ? ` · ${t.note}` : ''}
+                      {t2.type === 'pret' ? t('loan') : t('debt')}
+                      {t2.note ? ` · ${t2.note}` : ''}
                     </Text>
                     {(isUrgent || isOverdue) && (
                       <Text
@@ -202,22 +202,17 @@ export default function HomeScreen({ navigation }: Props) {
                         ]}
                       >
                         {isOverdue
-                          ? 'Échéance dépassée'
+                          ? t('overdue')
                           : remaining === 0
-                          ? "Échéance aujourd'hui"
-                          : `Échéance dans ${remaining} j`}
+                          ? t('dueToday')
+                          : t('dueInDays', { n: remaining })}
                       </Text>
                     )}
                   </View>
 
                   <View style={styles.operationRight}>
-                    <Text
-                      style={[
-                        styles.operationAmount,
-                        { color: t.type === 'pret' ? colors.success : colors.error },
-                      ]}
-                    >
-                      {formatAmount(t.type === 'pret' ? t.amount : -t.amount, currency)}
+                    <Text style={[styles.operationAmount, { color: accent }]}>
+                      {formatAmount(t2.type === 'pret' ? t2.amount : -t2.amount, currency)}
                     </Text>
                     <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                   </View>
@@ -227,15 +222,16 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 110 }} />
       </ScrollView>
 
-      {/* Bouton central d'ajout */}
+      {/* Floating Action Button */}
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() => navigation.navigate('AddTransaction')}
       >
-        <Ionicons name="add" size={28} color={colors.white} />
+        <Ionicons name="add" size={22} color={colors.white} />
+        <Text style={styles.fabText}>{t('addButton')}</Text>
       </Pressable>
     </SafeAreaView>
   );
@@ -293,18 +289,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   balanceCard: {
-    backgroundColor: colors.white,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     paddingVertical: spacing.xl,
     alignItems: 'center',
     marginBottom: spacing.md,
-    ...shadow.soft,
+    ...shadow.fab,
   },
   balanceLabel: {
     ...typography.small,
-    color: colors.textSecondary,
+    color: colors.white,
+    opacity: 0.85,
     letterSpacing: 1.5,
     fontWeight: '700',
     marginBottom: spacing.xs,
@@ -313,6 +307,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '800',
     letterSpacing: -0.5,
+    color: colors.white,
   },
   row: {
     flexDirection: 'row',
@@ -370,6 +365,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
+    borderLeftWidth: 4,
     padding: spacing.sm,
     marginBottom: spacing.sm,
     ...shadow.soft,
@@ -418,16 +414,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: spacing.xl,
     alignSelf: 'center',
-    width: 60,
-    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    height: 56,
+    paddingHorizontal: spacing.lg,
     borderRadius: radius.full,
     backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
     ...shadow.fab,
   },
   fabPressed: {
     backgroundColor: colors.primaryDark,
-    transform: [{ scale: 0.96 }],
+    transform: [{ scale: 0.97 }],
+  },
+  fabText: {
+    ...typography.button,
+    color: colors.white,
+    fontWeight: '700',
   },
 });

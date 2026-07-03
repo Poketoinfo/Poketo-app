@@ -28,11 +28,13 @@ import { supabase } from '../lib/supabase';
 import { useCurrency } from '../lib/CurrencyContext';
 import { CURRENCIES } from '../lib/currency';
 import { scheduleDueDateReminders } from '../lib/notifications';
+import { useLanguage } from '../lib/i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddTransaction'>;
 
 export default function AddTransactionScreen({ navigation }: Props) {
   const { currency } = useCurrency();
+  const { t } = useLanguage();
   const currencySymbol = CURRENCIES[currency].symbol;
   const [type, setType] = useState<TransactionType>('pret');
   const [amount, setAmount] = useState('');
@@ -47,7 +49,7 @@ export default function AddTransactionScreen({ navigation }: Props) {
   const pickPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      setError("L'accès aux photos est nécessaire pour ajouter un justificatif.");
+      setError(t('errorPhotoPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -65,11 +67,11 @@ export default function AddTransactionScreen({ navigation }: Props) {
     const numericAmount = parseFloat(amount.replace(',', '.'));
 
     if (!contactName.trim()) {
-      setError('Merci d\'indiquer un nom.');
+      setError(t('errorNameRequired'));
       return;
     }
     if (!numericAmount || numericAmount <= 0) {
-      setError('Merci d\'indiquer un montant valide.');
+      setError(t('errorInvalidAmount'));
       return;
     }
 
@@ -95,8 +97,6 @@ export default function AddTransactionScreen({ navigation }: Props) {
         due_date: dueDate,
       });
 
-      // Planifie les rappels (J-5 et jour J) si une échéance est définie.
-      // Sans effet sur le web : Expo n'y supporte pas les notifications programmées.
       if (dueDate) {
         await scheduleDueDateReminders({
           contactName: contactName.trim(),
@@ -108,7 +108,7 @@ export default function AddTransactionScreen({ navigation }: Props) {
 
       navigation.goBack();
     } catch (e: any) {
-      setError(e.message ?? "Une erreur est survenue, réessaie.");
+      setError(e.message ?? t('errorGeneric'));
     } finally {
       setLoading(false);
     }
@@ -120,7 +120,7 @@ export default function AddTransactionScreen({ navigation }: Props) {
         <Pressable onPress={() => navigation.goBack()} hitSlop={10}>
           <Ionicons name="close" size={26} color={colors.text} />
         </Pressable>
-        <Text style={styles.topTitle}>Nouvelle opération</Text>
+        <Text style={styles.topTitle}>{t('addTitle')}</Text>
         <View style={{ width: 26 }} />
       </View>
 
@@ -132,8 +132,7 @@ export default function AddTransactionScreen({ navigation }: Props) {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Sélection du type */}
-          <Text style={styles.label}>Sélectionner le type</Text>
+          <Text style={styles.label}>{t('selectType')}</Text>
           <View style={styles.typeRow}>
             <Pressable
               style={[
@@ -142,13 +141,18 @@ export default function AddTransactionScreen({ navigation }: Props) {
               ]}
               onPress={() => setType('pret')}
             >
+              <Ionicons
+                name="arrow-up-circle"
+                size={18}
+                color={type === 'pret' ? colors.success : colors.textSecondary}
+              />
               <Text
                 style={[
                   styles.typeText,
-                  type === 'pret' && styles.typeTextActive,
+                  type === 'pret' && { color: colors.success },
                 ]}
               >
-                J'ai prêté
+                {t('iLent')}
               </Text>
             </Pressable>
             <Pressable
@@ -158,19 +162,23 @@ export default function AddTransactionScreen({ navigation }: Props) {
               ]}
               onPress={() => setType('dette')}
             >
+              <Ionicons
+                name="arrow-down-circle"
+                size={18}
+                color={type === 'dette' ? colors.error : colors.textSecondary}
+              />
               <Text
                 style={[
                   styles.typeText,
-                  type === 'dette' && styles.typeTextActive,
+                  type === 'dette' && { color: colors.error },
                 ]}
               >
-                J'ai emprunté
+                {t('iBorrowed')}
               </Text>
             </Pressable>
           </View>
 
-          {/* Montant */}
-          <Text style={styles.label}>Montant</Text>
+          <Text style={styles.label}>{t('amount')}</Text>
           <View style={styles.amountRow}>
             <TextInput
               style={styles.amountInput}
@@ -181,50 +189,42 @@ export default function AddTransactionScreen({ navigation }: Props) {
               onChangeText={setAmount}
               autoFocus
             />
-            <Text style={styles.amountSuffix}>{currencySymbol}</Text>
           </View>
 
-          {/* Contact */}
           <TextField
-            label="À qui ? / De qui ?"
-            placeholder="Entrez un nom... (ex: Paul)"
+            label={t('contactLabel')}
+            placeholder={t('contactPlaceholder')}
             value={contactName}
             onChangeText={setContactName}
           />
 
-          {/* Date d'échéance */}
           <DueDatePicker
-            label="Date d'échéance (optionnel)"
+            label={t('dueDateLabel')}
             value={dueDate}
             onChange={setDueDate}
           />
-          {!!dueDate && (
-            <Text style={styles.hint}>
-              Rappel automatique 5 jours avant, et alerte le jour même.
-            </Text>
-          )}
+          {!!dueDate && <Text style={styles.hint}>{t('dueDateHint')}</Text>}
 
-          {/* Options */}
-          <Text style={styles.label}>Options (optionnel)</Text>
+          <Text style={styles.label}>{t('optionsLabel')}</Text>
 
           {showNoteField ? (
             <TextField
-              label="Note / Explication"
-              placeholder="ex : prêté pour le resto"
+              label={t('addNote')}
+              placeholder={t('notePlaceholder')}
               value={note}
               onChangeText={setNote}
             />
           ) : (
             <Pressable style={styles.optionRow} onPress={() => setShowNoteField(true)}>
               <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-              <Text style={styles.optionText}>Ajouter une note / explication</Text>
+              <Text style={styles.optionText}>{t('addNote')}</Text>
             </Pressable>
           )}
 
           <Pressable style={styles.optionRow} onPress={pickPhoto}>
             <Ionicons name="camera-outline" size={20} color={colors.primary} />
             <Text style={styles.optionText}>
-              {photoUri ? 'Changer la photo' : 'Prendre / Ajouter une photo'}
+              {photoUri ? t('changePhoto') : t('addPhoto')}
             </Text>
           </Pressable>
 
@@ -235,7 +235,7 @@ export default function AddTransactionScreen({ navigation }: Props) {
           {!!error && <Text style={styles.error}>{error}</Text>}
 
           <PrimaryButton
-            title="Valider l'action"
+            title={t('validate')}
             onPress={handleSubmit}
             loading={loading}
             style={{ marginTop: spacing.lg }}
@@ -282,12 +282,14 @@ const styles = StyleSheet.create({
   },
   typeButton: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
     height: 48,
     borderRadius: radius.md,
     borderWidth: 1.5,
     borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: colors.surface,
   },
   typeButtonActive: {
@@ -298,9 +300,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     fontWeight: '600',
-  },
-  typeTextActive: {
-    color: colors.primary,
   },
   amountRow: {
     flexDirection: 'row',

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -23,6 +24,7 @@ import DueDatePicker from '../components/DueDatePicker';
 import { useCurrency } from '../lib/CurrencyContext';
 import { CURRENCIES, formatAmount } from '../lib/currency';
 import { formatDate } from '../lib/date';
+import { useLanguage } from '../lib/i18n/LanguageContext';
 import {
   Transaction,
   TransactionType,
@@ -36,17 +38,38 @@ import { scheduleDueDateReminders } from '../lib/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TransactionDetail'>;
 
+// Cross-platform confirmation helper
+// Uses Alert.alert on mobile and window.confirm on web
+function confirmAsync(
+  title: string,
+  message: string,
+  confirmLabel: string,
+  cancelLabel: string
+): Promise<boolean> {
+  if (Platform.OS === 'web') {
+    return Promise.resolve(window.confirm(`${title}\n\n${message}`));
+  }
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: cancelLabel, style: 'cancel', onPress: () => resolve(false) },
+      { text: confirmLabel, style: 'destructive', onPress: () => resolve(true) },
+    ]);
+  });
+}
+
 export default function TransactionDetailScreen({ navigation, route }: Props) {
   const { id } = route.params;
   const { currency } = useCurrency();
+  const { t } = useLanguage();
 
+  // State Management
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Champs éditables
+  // Form State
   const [type, setType] = useState<TransactionType>('pret');
   const [amount, setAmount] = useState('');
   const [contactName, setContactName] = useState('');
@@ -54,25 +77,27 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
+  // Load Transaction Data
   useEffect(() => {
     fetchTransactionById(id)
-      .then((t) => {
-        setTransaction(t);
-        setType(t.type);
-        setAmount(String(t.amount));
-        setContactName(t.contact_name);
-        setNote(t.note ?? '');
-        setDueDate(t.due_date);
-        setPhotoUri(t.photo_url);
+      .then((tr) => {
+        setTransaction(tr);
+        setType(tr.type);
+        setAmount(String(tr.amount));
+        setContactName(tr.contact_name);
+        setNote(tr.note ?? '');
+        setDueDate(tr.due_date);
+        setPhotoUri(tr.photo_url);
       })
-      .catch((e) => setError(e.message ?? 'Impossible de charger cette opération.'))
+      .catch((e) => setError(e.message ?? t('errorGeneric')))
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Photo Picker Handler
   const pickPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      setError("L'accès aux photos est nécessaire.");
+      setError(t('errorPhotoPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -84,17 +109,18 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
     }
   };
 
+  // Save Transaction Handler
   const handleSave = async () => {
     if (!transaction) return;
     setError('');
 
     const numericAmount = parseFloat(amount.replace(',', '.'));
     if (!contactName.trim()) {
-      setError("Merci d'indiquer un nom.");
+      setError(t('errorNameRequired'));
       return;
     }
     if (!numericAmount || numericAmount <= 0) {
-      setError('Merci d\'indiquer un montant valide.');
+      setError(t('errorInvalidAmount'));
       return;
     }
 
@@ -102,7 +128,7 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
     try {
       let photoUrl = photoUri;
 
-      // Nouvelle photo locale (pas encore uploadée = uri qui ne vient pas de Supabase)
+      // Upload photo if it's a new local file
       if (photoUri && !photoUri.startsWith('http')) {
         const {
           data: { user },
@@ -112,6 +138,7 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
         }
       }
 
+      // Update transaction
       await updateTransaction(transaction.id, {
         type,
         amount: numericAmount,
@@ -121,6 +148,7 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
         due_date: dueDate,
       });
 
+      // Schedule reminders if due date is set
       if (dueDate) {
         await scheduleDueDateReminders({
           contactName: contactName.trim(),
@@ -130,6 +158,7 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
         });
       }
 
+      // Update local state
       setTransaction({
         ...transaction,
         type,
@@ -141,24 +170,34 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
       });
       setEditing(false);
     } catch (e: any) {
-      setError(e.message ?? 'Impossible d\'enregistrer les modifications.');
+      setError(e.message ?? t('errorGeneric'));
     } finally {
       setSaving(false);
     }
   };
 
+  // Delete Transaction Handler
   const handleDelete = async () => {
     if (!transaction) return;
+    const confirmed = await confirmAsync(
+      t('deleteConfirmTitle'),
+      t('deleteConfirmMessage'),
+      t('deleteConfirmYes'),
+      t('deleteConfirmNo')
+    );
+    if (!confirmed) return;
+
     setSaving(true);
     try {
       await deleteTransaction(transaction.id);
       navigation.goBack();
     } catch (e: any) {
-      setError(e.message ?? 'Impossible de supprimer cette opération.');
+      setError(e.message ?? t('errorGeneric'));
       setSaving(false);
     }
   };
 
+  // Loading State
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -167,6 +206,7 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
     );
   }
 
+  // Error State
   if (!transaction) {
     return (
       <SafeAreaView style={styles.container}>
@@ -174,40 +214,47 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
           <Pressable onPress={() => navigation.goBack()} hitSlop={10}>
             <Ionicons name="close" size={26} color={colors.text} />
           </Pressable>
-          <Text style={styles.topTitle}>Opération</Text>
+          <Text style={styles.topTitle}>{t('detailTitle')}</Text>
           <View style={{ width: 26 }} />
         </View>
-        <Text style={styles.error}>{error || 'Opération introuvable.'}</Text>
+        <Text style={styles.error}>{error || t('notFound')}</Text>
       </SafeAreaView>
     );
   }
 
+  // Main Render
   return (
     <SafeAreaView style={styles.container}>
+      {/* Top Navigation Bar */}
       <View style={styles.topBar}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={10}>
           <Ionicons name="close" size={26} color={colors.text} />
         </Pressable>
         <Text style={styles.topTitle}>
-          {editing ? 'Modifier' : 'Détail de l\'opération'}
+          {editing ? t('editTitle') : t('detailTitle')}
         </Text>
-        {editing ? (
+        <View style={styles.topActions}>
           <Pressable onPress={handleDelete} hitSlop={10}>
-            <Ionicons name="trash-outline" size={22} color={colors.error} />
+            <Ionicons name="trash-outline" size={21} color={colors.error} />
           </Pressable>
-        ) : (
-          <Pressable onPress={() => setEditing(true)} hitSlop={10}>
-            <Ionicons name="create-outline" size={22} color={colors.primary} />
-          </Pressable>
-        )}
+          {!editing && (
+            <Pressable onPress={() => setEditing(true)} hitSlop={10}>
+              <Ionicons name="create-outline" size={22} color={colors.primary} />
+            </Pressable>
+          )}
+        </View>
       </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+        >
           {!editing ? (
+            // View Mode
             <>
               <View style={styles.summaryCard}>
                 <Text
@@ -219,18 +266,18 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
                   {formatAmount(type === 'pret' ? transaction.amount : -transaction.amount, currency)}
                 </Text>
                 <Text style={styles.summaryType}>
-                  {type === 'pret' ? 'Prêt' : 'Dette'}
+                  {type === 'pret' ? t('loan') : t('debt')}
                 </Text>
               </View>
 
-              <DetailRow label="Contact" value={transaction.contact_name} />
-              {!!transaction.note && <DetailRow label="Note" value={transaction.note} />}
+              <DetailRow label={t('contactLabel')} value={transaction.contact_name} />
+              {!!transaction.note && <DetailRow label={t('addNote')} value={transaction.note} />}
               {!!transaction.due_date && (
-                <DetailRow label="Échéance" value={formatDate(transaction.due_date)} />
+                <DetailRow label={t('dueDateLabel')} value={formatDate(transaction.due_date)} />
               )}
               <DetailRow
-                label="Ajouté le"
-                value={new Date(transaction.created_at).toLocaleDateString('fr-FR')}
+                label={t('addedOn')}
+                value={new Date(transaction.created_at).toLocaleDateString()}
               />
 
               {transaction.photo_url && (
@@ -238,6 +285,7 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
               )}
             </>
           ) : (
+            // Edit Mode
             <>
               <View style={styles.typeRow}>
                 <Pressable
@@ -245,7 +293,7 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
                   onPress={() => setType('pret')}
                 >
                   <Text style={[styles.typeText, type === 'pret' && styles.typeTextActive]}>
-                    J'ai prêté
+                    {t('iLent')}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -253,7 +301,7 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
                   onPress={() => setType('dette')}
                 >
                   <Text style={[styles.typeText, type === 'dette' && styles.typeTextActive]}>
-                    J'ai emprunté
+                    {t('iBorrowed')}
                   </Text>
                 </Pressable>
               </View>
@@ -268,14 +316,14 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
                 <Text style={styles.amountSuffix}>{CURRENCIES[currency].symbol}</Text>
               </View>
 
-              <TextField label="Contact" value={contactName} onChangeText={setContactName} />
-              <TextField label="Note" value={note} onChangeText={setNote} />
-              <DueDatePicker label="Date d'échéance" value={dueDate} onChange={setDueDate} />
+              <TextField label={t('contactLabel')} value={contactName} onChangeText={setContactName} />
+              <TextField label={t('addNote')} value={note} onChangeText={setNote} />
+              <DueDatePicker label={t('dueDateLabel')} value={dueDate} onChange={setDueDate} />
 
               <Pressable style={styles.optionRow} onPress={pickPhoto}>
                 <Ionicons name="camera-outline" size={20} color={colors.primary} />
                 <Text style={styles.optionText}>
-                  {photoUri ? 'Changer la photo' : 'Ajouter une photo'}
+                  {photoUri ? t('changePhoto') : t('addPhoto')}
                 </Text>
               </Pressable>
               {photoUri && <Image source={{ uri: photoUri }} style={styles.photo} />}
@@ -283,13 +331,13 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
               {!!error && <Text style={styles.error}>{error}</Text>}
 
               <PrimaryButton
-                title="Enregistrer"
+                title={t('save')}
                 onPress={handleSave}
                 loading={saving}
                 style={{ marginTop: spacing.lg }}
               />
               <PrimaryButton
-                title="Annuler"
+                title={t('cancel')}
                 onPress={() => setEditing(false)}
                 variant="outline"
                 style={{ marginTop: spacing.sm }}
@@ -302,6 +350,7 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
   );
 }
 
+// Helper Component
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.detailRow}>
@@ -324,6 +373,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  topActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   topTitle: {
     ...typography.body,

@@ -16,10 +16,12 @@ import TextField from '../components/TextField';
 import PrimaryButton from '../components/PrimaryButton';
 import { supabase } from '../lib/supabase';
 import { colors, spacing, typography } from '../theme/colors';
+import { useLanguage } from '../lib/i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
 
 export default function SignupScreen({ navigation }: Props) {
+  const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,13 +30,13 @@ export default function SignupScreen({ navigation }: Props) {
 
   const validate = () => {
     if (!username.trim() || !email.trim() || !password) {
-      return 'Merci de remplir tous les champs.';
+      return t('errorFillFields');
     }
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-      return 'Adresse e-mail invalide.';
+      return t('errorInvalidEmail');
     }
     if (password.length < 6) {
-      return 'Le mot de passe doit contenir au moins 6 caractères.';
+      return t('errorPasswordShort');
     }
     return '';
   };
@@ -59,7 +61,6 @@ export default function SignupScreen({ navigation }: Props) {
       return;
     }
 
-    // Enregistrement du profil dans la table "profiles" (à créer côté Supabase)
     if (data.user) {
       await supabase.from('profiles').insert({
         id: data.user.id,
@@ -84,29 +85,29 @@ export default function SignupScreen({ navigation }: Props) {
         >
           <View style={styles.header}>
             <Logo size={90} />
-            <Text style={styles.title}>Créer un compte</Text>
-            <Text style={styles.subtitle}>Rejoins POKLY en quelques secondes</Text>
+            <Text style={styles.title}>{t('signupTitle')}</Text>
+            <Text style={styles.subtitle}>{t('signupSubtitle')}</Text>
           </View>
 
           <View style={styles.form}>
             <TextField
-              label="Nom d'utilisateur"
-              placeholder="ex : pokly_user"
+              label={t('usernameLabel')}
+              placeholder={t('usernamePlaceholder')}
               autoCapitalize="none"
               value={username}
               onChangeText={setUsername}
             />
             <TextField
-              label="E-mail"
-              placeholder="toi@exemple.com"
+              label={t('emailLabel')}
+              placeholder={t('emailPlaceholder')}
               autoCapitalize="none"
               keyboardType="email-address"
               value={email}
               onChangeText={setEmail}
             />
             <TextField
-              label="Mot de passe"
-              placeholder="6 caractères minimum"
+              label={t('passwordLabel')}
+              placeholder={t('passwordPlaceholder')}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
@@ -115,7 +116,7 @@ export default function SignupScreen({ navigation }: Props) {
             {!!error && <Text style={styles.error}>{error}</Text>}
 
             <PrimaryButton
-              title="S'inscrire"
+              title={t('signupButton')}
               onPress={handleSignup}
               loading={loading}
               style={{ marginTop: spacing.sm }}
@@ -124,7 +125,7 @@ export default function SignupScreen({ navigation }: Props) {
 
           <Pressable style={styles.footer} onPress={() => navigation.goBack()}>
             <Text style={styles.footerText}>
-              Déjà un compte ? <Text style={styles.footerLink}>Se connecter</Text>
+              {t('haveAccount')} <Text style={styles.footerLink}>{t('backToLogin')}</Text>
             </Text>
           </Pressable>
         </ScrollView>
