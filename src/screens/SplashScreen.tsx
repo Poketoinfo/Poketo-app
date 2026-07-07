@@ -1,38 +1,66 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Linking from 'expo-linking';
 import Logo from '../components/Logo';
-import { colors, radius, spacing, typography } from '../theme/colors';
+import { colors, radius, spacing } from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { supabase } from '../lib/supabase';
-import { useLanguage } from '../lib/i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
-const LOAD_DURATION = 2200;
+const LOAD_DURATION = 1200;
 
 export default function SplashScreen({ navigation }: Props) {
-  const { t } = useLanguage();
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    let destination: 'Login' | 'Home' = 'Login';
+    let isMounted = true;
 
-    // On vérifie en parallèle si une session existe déjà,
-    // pendant que la barre de progression s'anime.
-    const checkSession = supabase.auth.getSession().then(({ data }) => {
-      destination = data.session ? 'Home' : 'Login';
-    });
+    const init = async () => {
+      // 1. On vérifie d'abord si l'app a été ouverte via un lien profond
+      // (reset-password, confirmation d'e-mail, etc.). Si oui, on route
+      // directement dessus SANS passer par la logique session/Login/Home,
+      // pour éviter que ce useEffect n'écrase la navigation attendue.
+      const initialUrl = await Linking.getInitialURL();
 
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: LOAD_DURATION,
-      useNativeDriver: false,
-    }).start(async () => {
-      await checkSession;
-      navigation.replace(destination);
-    });
+      if (initialUrl) {
+        const { path } = Linking.parse(initialUrl);
+
+        if (path === 'reset-password') {
+          if (isMounted) navigation.replace('ResetPassword');
+          return;
+        }
+        if (path === 'verify-email') {
+          if (isMounted) navigation.replace('Login');
+          return;
+        }
+        if (path === 'login') {
+          if (isMounted) navigation.replace('Login');
+          return;
+        }
+        // Ajoutez ici d'autres chemins de deep link si besoin
+      }
+
+      // 2. Cas normal : ouverture classique de l'app (pas de lien profond)
+      const { data } = await supabase.auth.getSession();
+      const destination: 'Login' | 'Home' = data.session ? 'Home' : 'Login';
+
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: LOAD_DURATION,
+        useNativeDriver: false,
+      }).start(() => {
+        if (isMounted) navigation.replace(destination);
+      });
+    };
+
+    init();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const width = progress.interpolate({
@@ -66,12 +94,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
-  },
-  title: {
-    ...typography.h1,
-    color: colors.primary,
-    letterSpacing: 2,
-    marginTop: spacing.sm,
   },
   bottom: {
     paddingHorizontal: spacing.xl,
