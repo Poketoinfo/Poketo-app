@@ -14,13 +14,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radius, shadow, spacing, typography } from '../theme/colors';
 import PrimaryButton from '../components/PrimaryButton';
 import TextField from '../components/TextField';
 import DueDatePicker from '../components/DueDatePicker';
+import PhotoPicker from '../components/PhotoPicker';
 import { useCurrency } from '../lib/CurrencyContext';
 import { CURRENCIES, formatAmount } from '../lib/currency';
 import { formatDate } from '../lib/date';
@@ -93,22 +93,6 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Photo Picker Handler
-  const pickPhoto = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setError(t('errorPhotoPermission'));
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.6,
-    });
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      setPhotoUri(result.assets[0].uri);
-    }
-  };
-
   // Save Transaction Handler
   const handleSave = async () => {
     if (!transaction) return;
@@ -168,6 +152,7 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
         photo_url: photoUrl,
         due_date: dueDate,
       });
+      setPhotoUri(photoUrl);
       setEditing(false);
     } catch (e: any) {
       setError(e.message ?? t('errorGeneric'));
@@ -320,13 +305,11 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
               <TextField label={t('addNote')} value={note} onChangeText={setNote} />
               <DueDatePicker label={t('dueDateLabel')} value={dueDate} onChange={setDueDate} />
 
-              <Pressable style={styles.optionRow} onPress={pickPhoto}>
-                <Ionicons name="camera-outline" size={20} color={colors.primary} />
-                <Text style={styles.optionText}>
-                  {photoUri ? t('changePhoto') : t('addPhoto')}
-                </Text>
-              </Pressable>
-              {photoUri && <Image source={{ uri: photoUri }} style={styles.photo} />}
+              <PhotoPicker
+                photoUri={photoUri}
+                onChange={setPhotoUri}
+                onError={setError}
+              />
 
               {!!error && <Text style={styles.error}>{error}</Text>}
 
@@ -480,17 +463,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     color: colors.textSecondary,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  optionText: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
   },
   error: {
     ...typography.small,

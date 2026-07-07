@@ -14,6 +14,8 @@ type TranslationKeys = {
   loginSubtitle: string;
   emailLabel: string;
   emailPlaceholder: string;
+  emailOrUsernameLabel: string;
+  emailOrUsernamePlaceholder: string;
   passwordLabel: string;
   passwordPlaceholder: string;
   loginButton: string;
@@ -26,6 +28,18 @@ type TranslationKeys = {
   signupButton: string;
   haveAccount: string;
   backToLogin: string;
+  forgotPassword: string;
+  forgotPasswordTitle: string;
+  forgotPasswordSubtitle: string;
+  sendResetLink: string;
+  resetLinkSent: string;
+  newPasswordLabel: string;
+  resetPasswordTitle: string;
+  resetPasswordSubtitle: string;
+  resetPasswordButton: string;
+  resetPasswordSuccess: string;
+  verifyEmailTitle: string;
+  verifyEmailMessage: string;
 
   // Home
   balanceGlobal: string;
@@ -58,6 +72,9 @@ type TranslationKeys = {
   notePlaceholder: string;
   addPhoto: string;
   changePhoto: string;
+  takePhoto: string;
+  chooseFromLibrary: string;
+  removePhoto: string;
   validate: string;
   removeDate: string;
   selectDate: string;
@@ -89,6 +106,8 @@ type TranslationKeys = {
   errorNameRequired: string;
   errorGeneric: string;
   errorPhotoPermission: string;
+  errorCameraPermission: string;
+  errorUserNotFound: string;
 };
 
 export const translations: Record<LanguageCode, TranslationKeys> = {
@@ -99,6 +118,8 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     loginSubtitle: 'Content de te revoir',
     emailLabel: 'E-mail',
     emailPlaceholder: 'toi@exemple.com',
+    emailOrUsernameLabel: "E-mail ou nom d'utilisateur",
+    emailOrUsernamePlaceholder: 'toi@exemple.com ou pseudo',
     passwordLabel: 'Mot de passe',
     passwordPlaceholder: '••••••••',
     loginButton: 'Se connecter',
@@ -111,6 +132,18 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     signupButton: "S'inscrire",
     haveAccount: 'Déjà un compte ?',
     backToLogin: 'Se connecter',
+    forgotPassword: 'Mot de passe oublié ?',
+    forgotPasswordTitle: 'Mot de passe oublié',
+    forgotPasswordSubtitle: 'Entre ton e-mail pour recevoir un lien de réinitialisation.',
+    sendResetLink: 'Envoyer le lien',
+    resetLinkSent: 'E-mail envoyé ! Vérifie ta boîte de réception.',
+    newPasswordLabel: 'Nouveau mot de passe',
+    resetPasswordTitle: 'Réinitialiser le mot de passe',
+    resetPasswordSubtitle: 'Choisis un nouveau mot de passe pour ton compte.',
+    resetPasswordButton: 'Réinitialiser',
+    resetPasswordSuccess: 'Mot de passe mis à jour ! Tu peux te connecter.',
+    verifyEmailTitle: 'Confirme ton compte',
+    verifyEmailMessage: "Un e-mail de confirmation a été envoyé à {email}. Clique sur le lien pour activer ton compte, puis reviens te connecter.",
 
     balanceGlobal: 'Balance globale',
     onMeDoit: 'On me doit',
@@ -141,6 +174,9 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     notePlaceholder: 'ex : prêté pour le resto',
     addPhoto: 'Prendre / Ajouter une photo',
     changePhoto: 'Changer la photo',
+    takePhoto: 'Prendre une photo',
+    chooseFromLibrary: 'Choisir depuis la galerie',
+    removePhoto: 'Supprimer la photo',
     validate: "Valider l'action",
     removeDate: 'Retirer',
     selectDate: 'Sélectionner une date',
@@ -169,6 +205,8 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     errorNameRequired: "Merci d'indiquer un nom.",
     errorGeneric: 'Une erreur est survenue, réessaie.',
     errorPhotoPermission: "L'accès aux photos est nécessaire.",
+    errorCameraPermission: "L'accès à la caméra est nécessaire.",
+    errorUserNotFound: 'Utilisateur introuvable.',
   },
 
   en: {
@@ -178,6 +216,8 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     loginSubtitle: 'Welcome back',
     emailLabel: 'Email',
     emailPlaceholder: 'you@example.com',
+    emailOrUsernameLabel: 'Email or username',
+    emailOrUsernamePlaceholder: 'you@example.com or username',
     passwordLabel: 'Password',
     passwordPlaceholder: '••••••••',
     loginButton: 'Log in',
@@ -190,6 +230,18 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     signupButton: 'Sign up',
     haveAccount: 'Already have an account?',
     backToLogin: 'Log in',
+    forgotPassword: 'Forgot password?',
+    forgotPasswordTitle: 'Forgot password',
+    forgotPasswordSubtitle: 'Enter your email to receive a reset link.',
+    sendResetLink: 'Send reset link',
+    resetLinkSent: 'Email sent! Check your inbox.',
+    newPasswordLabel: 'New password',
+    resetPasswordTitle: 'Reset password',
+    resetPasswordSubtitle: 'Choose a new password for your account.',
+    resetPasswordButton: 'Reset password',
+    resetPasswordSuccess: 'Password updated! You can now log in.',
+    verifyEmailTitle: 'Confirm your account',
+    verifyEmailMessage: 'A confirmation email was sent to {email}. Click the link to activate your account, then come back to log in.',
 
     balanceGlobal: 'Overall balance',
     onMeDoit: 'Owed to me',
@@ -220,6 +272,9 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     notePlaceholder: 'e.g. lent for the restaurant',
     addPhoto: 'Take / Add a photo',
     changePhoto: 'Change photo',
+    takePhoto: 'Take a photo',
+    chooseFromLibrary: 'Choose from library',
+    removePhoto: 'Remove photo',
     validate: 'Confirm',
     removeDate: 'Remove',
     selectDate: 'Select a date',
@@ -248,6 +303,8 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     errorNameRequired: 'Please enter a name.',
     errorGeneric: 'Something went wrong, please try again.',
     errorPhotoPermission: 'Photo access is required.',
+    errorCameraPermission: 'Camera access is required.',
+    errorUserNotFound: 'User not found.',
   },
 
   mg: {
@@ -257,6 +314,8 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     loginSubtitle: 'Tonga soa indray',
     emailLabel: 'Mailaka',
     emailPlaceholder: 'ianao@ohatra.com',
+    emailOrUsernameLabel: 'Mailaka na anaram-pikasa',
+    emailOrUsernamePlaceholder: "ianao@ohatra.com na anaram-pikasa",
     passwordLabel: 'Tenimiafina',
     passwordPlaceholder: '••••••••',
     loginButton: 'Hiditra',
@@ -269,6 +328,18 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     signupButton: 'Misoratra anarana',
     haveAccount: 'Efa manana kaonty?',
     backToLogin: 'Hiditra',
+    forgotPassword: 'Hadino ny tenimiafina?',
+    forgotPasswordTitle: 'Hadino ny tenimiafina',
+    forgotPasswordSubtitle: "Ampidino ny mailakao mba handraisana rohy fanavaozana.",
+    sendResetLink: 'Alefaso ny rohy',
+    resetLinkSent: 'Nalefa ny mailaka! Jereo ny boaty mailakao.',
+    newPasswordLabel: 'Tenimiafina vaovao',
+    resetPasswordTitle: 'Fanavaozana tenimiafina',
+    resetPasswordSubtitle: 'Safidio ny tenimiafina vaovao ho an\'ny kaontinao.',
+    resetPasswordButton: 'Avaoy',
+    resetPasswordSuccess: 'Voaova ny tenimiafina! Azonao atao ny hiditra.',
+    verifyEmailTitle: 'Ekeo ny kaontinao',
+    verifyEmailMessage: "Nalefa tany amin'ny {email} ny mailaka fanamarinana. Kitiho ny rohy mba hanamarinana ny kaontinao, avy eo miverina hiditra.",
 
     balanceGlobal: 'Balance manontolo',
     onMeDoit: 'Trosa amiko',
@@ -299,6 +370,9 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     notePlaceholder: 'ohatra: nampindramina ho an\'ny sakafo',
     addPhoto: 'Maka / Ampio sary',
     changePhoto: 'Ovay ny sary',
+    takePhoto: 'Maka sary',
+    chooseFromLibrary: "Safidio avy amin'ny sary voatahiry",
+    removePhoto: 'Fafao ny sary',
     validate: 'Ekeo',
     removeDate: 'Esory',
     selectDate: 'Safidio ny daty',
@@ -327,6 +401,8 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     errorNameRequired: 'Ampidino ny anarana.',
     errorGeneric: 'Nisy olana, andramo indray.',
     errorPhotoPermission: 'Ilaina ny fidirana amin\'ny sary.',
+    errorCameraPermission: 'Ilaina ny fidirana amin\'ny kamera.',
+    errorUserNotFound: 'Tsy hita ny mpikambana.',
   },
 };
 
