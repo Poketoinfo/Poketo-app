@@ -22,27 +22,45 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ResetPassword'>;
 
 export default function ResetPasswordScreen({ navigation }: Props) {
   const { t } = useLanguage();
-  const url = Linking.useURL();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [ready, setReady] = useState(false);
+  const [checking, setChecking] = useState(true);
 
-  // Échange le "code" présent dans le lien reçu par e-mail
-  // contre une session temporaire permettant de changer le mot de passe.
-  useEffect(() => {
-    const exchange = async () => {
-      if (!url) return;
-      try {
-        await supabase.auth.exchangeCodeForSession(url);
-        setReady(true);
-      } catch {
+  const handleUrl = async (url: string | null) => {
+    if (!url) {
+      setChecking(false);
+      return;
+    }
+    try {
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(url);
+      if (exchangeError) {
+        console.warn('exchangeCodeForSession error:', exchangeError.message);
         setError(t('errorGeneric'));
+      } else {
+        setReady(true);
       }
-    };
-    exchange();
-  }, [url]);
+    } catch (e: any) {
+      console.warn('exchangeCodeForSession threw:', e?.message);
+      setError(t('errorGeneric'));
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    // Cas 1 : l'app était fermée et s'ouvre directement via le lien
+    Linking.getInitialURL().then(handleUrl);
+
+    // Cas 2 : l'app était déjà ouverte en arrière-plan
+    const subscription = Linking.addEventListener('url', (event) => {
+      handleUrl(event.url);
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   const handleReset = async () => {
     setError('');
@@ -88,20 +106,29 @@ export default function ResetPasswordScreen({ navigation }: Props) {
             </>
           ) : (
             <View style={styles.form}>
-              <PasswordField
-                label={t('newPasswordLabel')}
-                placeholder={t('passwordPlaceholder')}
-                value={password}
-                onChangeText={setPassword}
-              />
-              {!!error && <Text style={styles.error}>{error}</Text>}
-              <PrimaryButton
-                title={t('resetPasswordButton')}
-                onPress={handleReset}
-                loading={loading}
-                disabled={!ready}
-                style={{ marginTop: spacing.sm }}
-              />
+              {checking ? (
+                <Text style={styles.subtitle}>{t('resetPasswordSubtitle')}</Text>
+              ) : (
+                <>
+                  <PasswordField
+                    label={t('newPasswordLabel')}
+                    placeholder={t('passwordPlaceholder')}
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                  {!!error && <Text style={styles.error}>{error}</Text>}
+                  <PrimaryButton
+                    title={t('resetPasswordButton')}
+                    onPress={handleReset}
+                    loading={loading}
+                    disabled={!ready}
+                    style={{ marginTop: spacing.sm }}
+                  />
+                  {!ready && !error && (
+                    <Text style={styles.hint}>{t('resetPasswordVerifying')}</Text>
+                  )}
+                </>
+              )}
             </View>
           )}
         </ScrollView>
@@ -134,5 +161,11 @@ const styles = StyleSheet.create({
     color: colors.success,
     textAlign: 'center',
     marginBottom: spacing.lg,
+  },
+  hint: {
+    ...typography.small,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
 });

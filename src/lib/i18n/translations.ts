@@ -40,6 +40,7 @@ type TranslationKeys = {
   resetPasswordSuccess: string;
   verifyEmailTitle: string;
   verifyEmailMessage: string;
+  resetPasswordVerifying: string;
 
   // Home
   balanceGlobal: string;
@@ -113,6 +114,7 @@ type TranslationKeys = {
 export const translations: Record<LanguageCode, TranslationKeys> = {
   fr: {
     appName: 'Poketo',
+    resetPasswordVerifying: 'Vérification du lien en cours...',
 
     loginTitle: 'Connexion',
     loginSubtitle: 'Content de te revoir',
@@ -211,6 +213,7 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
 
   en: {
     appName: 'Poketo',
+    resetPasswordVerifying: 'Verifying link...',
 
     loginTitle: 'Log in',
     loginSubtitle: 'Welcome back',
@@ -309,6 +312,7 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
 
   mg: {
     appName: 'Poketo',
+    resetPasswordVerifying: 'Manamarina ny rohy...',
 
     loginTitle: 'Hiditra',
     loginSubtitle: 'Tonga soa indray',
