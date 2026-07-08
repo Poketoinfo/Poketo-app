@@ -22,6 +22,7 @@ import { formatAmount } from '../lib/currency';
 import { useCurrency } from '../lib/CurrencyContext';
 import { useLanguage } from '../lib/i18n/LanguageContext';
 import { daysUntil } from '../lib/date';
+import Logo from '../components/Logo';
 import {
   Transaction,
   computeBalances,
@@ -89,7 +90,10 @@ export default function HomeScreen({ navigation }: Props) {
         >
           <Ionicons name="settings-outline" size={22} color={colors.text} />
         </Pressable>
-        <Text style={styles.brand}>{t('appName')}</Text>
+        <View style={styles.brandRow}>
+          <Logo size={28} />
+          <Text style={styles.brand}>{t('appName')}</Text>
+        </View>
         <View style={styles.iconButton} />
       </View>
 
@@ -228,18 +232,25 @@ export default function HomeScreen({ navigation }: Props) {
             })}
           </View>
         )}
-        
+
         {/* Bottom spacing for FAB */}
         <View style={{ height: 110 }} />
       </ScrollView>
 
       {/* Floating Action Button - Fixed */}
       <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        style={({ pressed }) => [styles.fabWrapper, pressed && styles.fabPressed]}
         onPress={() => navigation.navigate('AddTransaction')}
       >
-        <Ionicons name="add" size={22} color={colors.white} />
-        <Text style={styles.fabText}>{t('addButton')}</Text>
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fab}
+        >
+          <Ionicons name="add" size={26} color={colors.white} />
+          <Text style={styles.fabText}>{t('addButton')}</Text>
+        </LinearGradient>
       </Pressable>
     </SafeAreaView>
   );
@@ -264,6 +275,11 @@ const styles = StyleSheet.create({
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   brand: {
     ...typography.h2,
@@ -426,25 +442,27 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: '700',
   },
-  fab: {
+  fabWrapper: {
     position: 'absolute',
     bottom: spacing.xl,
     alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    height: 56,
-    paddingHorizontal: spacing.lg,
     borderRadius: radius.full,
-    backgroundColor: colors.primary,
     ...shadow.fab,
   },
   fabPressed: {
-    backgroundColor: colors.primaryDark,
-    transform: [{ scale: 0.97 }],
+    transform: [{ scale: 0.96 }],
+  },
+  fab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    height: 64,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.full,
   },
   fabText: {
     ...typography.button,
+    fontSize: 17,
     color: colors.white,
     fontWeight: '700',
   },

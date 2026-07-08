@@ -1,8 +1,9 @@
 {
   "expo": {
     "name": "Poketo",
-    "slug": "poketo",
+    "slug": "pokly-app",
     "version": "1.0.0",
+    "scheme": "poketo",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -24,12 +25,20 @@
     },
     "plugins": [
       "@react-native-community/datetimepicker",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cette application a besoin d'accéder à vos photos pour ajouter des reçus.",
+          "cameraPermission": "Cette application a besoin d'accéder à la caméra pour prendre des photos de reçus."
+        }
+      ]
     ],
     "extra": {
       "eas": {
         "projectId": "5f17116d-7c87-4c54-8a17-ec95a3eb655c"
       }
-    }
+    },
+    "owner": "ielys"
   }
 }

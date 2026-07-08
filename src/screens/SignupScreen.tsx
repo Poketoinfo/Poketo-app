@@ -9,10 +9,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Linking from 'expo-linking';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import Logo from '../components/Logo';
 import TextField from '../components/TextField';
+import PasswordField from '../components/PasswordField';
 import PrimaryButton from '../components/PrimaryButton';
 import { supabase } from '../lib/supabase';
 import { colors, spacing, typography } from '../theme/colors';
@@ -47,30 +49,28 @@ export default function SignupScreen({ navigation }: Props) {
     if (validationError) return;
 
     setLoading(true);
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
         data: { username: username.trim() },
+        emailRedirectTo: Linking.createURL('login'),
       },
     });
 
+    setLoading(false);
+
     if (signUpError) {
-      setLoading(false);
       setError(signUpError.message);
       return;
     }
 
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        username: username.trim(),
-        email: email.trim(),
-      });
+    if (!data.session) {
+      navigation.replace('VerifyEmail', { email: email.trim() });
+    } else {
+      navigation.replace('Home');
     }
-
-    setLoading(false);
-    navigation.replace('Home');
   };
 
   return (
@@ -105,10 +105,9 @@ export default function SignupScreen({ navigation }: Props) {
               value={email}
               onChangeText={setEmail}
             />
-            <TextField
+            <PasswordField
               label={t('passwordLabel')}
               placeholder={t('passwordPlaceholder')}
-              secureTextEntry
               value={password}
               onChangeText={setPassword}
             />

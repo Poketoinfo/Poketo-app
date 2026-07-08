@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,13 +11,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme/colors';
 import PrimaryButton from '../components/PrimaryButton';
 import TextField from '../components/TextField';
 import DueDatePicker from '../components/DueDatePicker';
+import PhotoPicker from '../components/PhotoPicker';
 import {
   TransactionType,
   addTransaction,
@@ -45,21 +44,6 @@ export default function AddTransactionScreen({ navigation }: Props) {
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const pickPhoto = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setError(t('errorPhotoPermission'));
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.6,
-    });
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      setPhotoUri(result.assets[0].uri);
-    }
-  };
 
   const handleSubmit = async () => {
     setError('');
@@ -221,16 +205,11 @@ export default function AddTransactionScreen({ navigation }: Props) {
             </Pressable>
           )}
 
-          <Pressable style={styles.optionRow} onPress={pickPhoto}>
-            <Ionicons name="camera-outline" size={20} color={colors.primary} />
-            <Text style={styles.optionText}>
-              {photoUri ? t('changePhoto') : t('addPhoto')}
-            </Text>
-          </Pressable>
-
-          {photoUri && (
-            <Image source={{ uri: photoUri }} style={styles.preview} />
-          )}
+          <PhotoPicker
+            photoUri={photoUri}
+            onChange={setPhotoUri}
+            onError={setError}
+          />
 
           {!!error && <Text style={styles.error}>{error}</Text>}
 
@@ -333,12 +312,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.primary,
     fontWeight: '600',
-  },
-  preview: {
-    width: '100%',
-    height: 160,
-    borderRadius: radius.md,
-    marginTop: spacing.sm,
   },
   hint: {
     ...typography.small,
