@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
 import type { RootStackParamList } from './types';
@@ -12,9 +12,14 @@ import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import HomeScreen from '../screens/HomeScreen';
 import AddTransactionScreen from '../screens/AddTransactionScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import TransactionDetailScreen from '../screens/TransactionDetailScreen';
+import TransactionHistoryScreen from '../screens/TransactionHistoryScreen';
+import InactivityManager from '../lib/InactivityManager';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 const linking = {
   prefixes: [Linking.createURL('/'), 'poketo://'],
@@ -28,15 +33,18 @@ const linking = {
       ResetPassword: 'reset-password',
       Home: 'home',
       Settings: 'settings',
+      Profile: 'profile',
       AddTransaction: 'add-transaction',
       TransactionDetail: 'transaction/:id',
+      TransactionHistory: 'history/:type',
     },
   },
 };
 
 export default function RootNavigator() {
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
+      <InactivityManager navigationRef={navigationRef} />
       <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={{
@@ -61,7 +69,9 @@ export default function RootNavigator() {
           component={TransactionDetailScreen}
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
+        <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

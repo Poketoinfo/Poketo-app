@@ -6,7 +6,9 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: undefined;
   Home: undefined;
-  AddTransaction: undefined;
+  AddTransaction: { fixedType?: 'pret' | 'dette' } | undefined;
   Settings: undefined;
+  Profile: undefined;
   TransactionDetail: { id: string };
+  TransactionHistory: { type: 'pret' | 'dette' };
 };

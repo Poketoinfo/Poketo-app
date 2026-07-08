@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,62 +20,128 @@ import { useLanguage } from '../lib/i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResetPassword'>;
 
+const EXCHANGE_WAIT_MS = 5000; // délai max qu'on attend silencieusement avant de tenter quand même
+
 export default function ResetPasswordScreen({ navigation }: Props) {
   const { t } = useLanguage();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [checking, setChecking] = useState(true);
+  const [linkInvalid, setLinkInvalid] = useState(false);
 
-  const handleUrl = async (url: string | null) => {
-    if (!url) {
-      setChecking(false);
-      return;
-    }
+  // URL captée par expo-linking (lancement à froid ou événement pendant que
+  // l'app est ouverte).
+  const url = Linking.useURL();
+
+  const handledRef = useRef(false);
+  // Cette promesse représente le traitement du lien (exchange du code, ou
+  // setSession si le lien utilise le flux implicite). handleReset l'attend
+  // brièvement avant de tenter updateUser, sans jamais bloquer l'affichage
+  // du formulaire.
+  const exchangePromiseRef = useRef<Promise<void> | null>(null);
+
+  const processUrl = async (rawUrl: string): Promise<void> => {
+    if (handledRef.current) return;
+    handledRef.current = true;
+
     try {
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(url);
-      if (exchangeError) {
-        console.warn('exchangeCodeForSession error:', exchangeError.message);
-        setError(t('errorGeneric'));
-      } else {
-        setReady(true);
+      const parsed = Linking.parse(rawUrl);
+      const code = parsed.queryParams?.code as string | undefined;
+
+      if (code) {
+        // Flux PKCE (celui utilisé par ce projet, cf. supabase.ts flowType: 'pkce')
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(rawUrl);
+        if (exchangeError) {
+          console.warn('exchangeCodeForSession error:', exchangeError.message);
+        }
+        return;
+      }
+
+      // Filet de sécurité pour un éventuel flux implicite (#access_token=...)
+      const hashPart = rawUrl.split('#')[1];
+      if (hashPart) {
+        const params = new URLSearchParams(hashPart);
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+
+        if (access_token && refresh_token) {
+          const { error: setSessionError } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+          if (setSessionError) {
+            console.warn('setSession error:', setSessionError.message);
+          }
+        }
       }
     } catch (e: any) {
-      console.warn('exchangeCodeForSession threw:', e?.message);
-      setError(t('errorGeneric'));
-    } finally {
-      setChecking(false);
+      console.warn('processUrl threw:', e?.message);
     }
   };
 
+  const startProcessing = (rawUrl: string) => {
+    if (exchangePromiseRef.current) return;
+    exchangePromiseRef.current = processUrl(rawUrl);
+  };
+
   useEffect(() => {
-    // Cas 1 : l'app était fermée et s'ouvre directement via le lien
-    Linking.getInitialURL().then(handleUrl);
+    if (url) startProcessing(url);
+  }, [url]);
 
-    // Cas 2 : l'app était déjà ouverte en arrière-plan
-    const subscription = Linking.addEventListener('url', (event) => {
-      handleUrl(event.url);
+  // Filet de sécurité au montage, au cas où useURL() n'aurait pas encore
+  // de valeur alors que l'URL de lancement existe déjà.
+  useEffect(() => {
+    let isMounted = true;
+    Linking.getInitialURL().then((initial) => {
+      if (isMounted && initial && !handledRef.current) {
+        startProcessing(initial);
+      }
     });
-
-    return () => subscription.remove();
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  const waitForExchange = async () => {
+    if (!exchangePromiseRef.current) return;
+    await Promise.race([
+      exchangePromiseRef.current,
+      new Promise((resolve) => setTimeout(resolve, EXCHANGE_WAIT_MS)),
+    ]);
+  };
 
   const handleReset = async () => {
     setError('');
+    setLinkInvalid(false);
+
     if (password.length < 6) {
       setError(t('errorPasswordShort'));
       return;
     }
+
     setLoading(true);
+
+    // On attend silencieusement (max 5s) que le lien ait fini d'être traité
+    // s'il est encore en cours de vérification, sans jamais bloquer le
+    // formulaire visuellement.
+    await waitForExchange();
+
     const { error: updateError } = await supabase.auth.updateUser({ password });
     setLoading(false);
 
     if (updateError) {
-      setError(updateError.message);
+      // "Auth session missing" ou équivalent = le lien n'a pas pu être
+      // validé (expiré, déjà utilisé, ou mal configuré côté Supabase).
+      const message = updateError.message?.toLowerCase() ?? '';
+      if (message.includes('session') || message.includes('token')) {
+        setLinkInvalid(true);
+      } else {
+        setError(updateError.message);
+      }
       return;
     }
+
     setSuccess(true);
   };
 
@@ -83,7 +149,8 @@ export default function ResetPasswordScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -106,29 +173,33 @@ export default function ResetPasswordScreen({ navigation }: Props) {
             </>
           ) : (
             <View style={styles.form}>
-              {checking ? (
-                <Text style={styles.subtitle}>{t('resetPasswordSubtitle')}</Text>
-              ) : (
+              <PasswordField
+                label={t('newPasswordLabel')}
+                placeholder={t('passwordPlaceholder')}
+                value={password}
+                onChangeText={setPassword}
+              />
+
+              {!!error && <Text style={styles.error}>{error}</Text>}
+
+              {linkInvalid && (
                 <>
-                  <PasswordField
-                    label={t('newPasswordLabel')}
-                    placeholder={t('passwordPlaceholder')}
-                    value={password}
-                    onChangeText={setPassword}
-                  />
-                  {!!error && <Text style={styles.error}>{error}</Text>}
+                  <Text style={styles.error}>{t('errorGeneric')}</Text>
                   <PrimaryButton
-                    title={t('resetPasswordButton')}
-                    onPress={handleReset}
-                    loading={loading}
-                    disabled={!ready}
-                    style={{ marginTop: spacing.sm }}
+                    title={t('forgotPassword')}
+                    onPress={() => navigation.replace('ForgotPassword')}
+                    variant="outline"
+                    style={{ marginBottom: spacing.sm }}
                   />
-                  {!ready && !error && (
-                    <Text style={styles.hint}>{t('resetPasswordVerifying')}</Text>
-                  )}
                 </>
               )}
+
+              <PrimaryButton
+                title={t('resetPasswordButton')}
+                onPress={handleReset}
+                loading={loading}
+                style={{ marginTop: spacing.sm }}
+              />
             </View>
           )}
         </ScrollView>
@@ -155,17 +226,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: { marginBottom: spacing.xl },
-  error: { color: colors.error, ...typography.small, marginBottom: spacing.sm },
+  error: { color: colors.error, ...typography.small, marginBottom: spacing.sm, textAlign: 'center' },
   success: {
     ...typography.body,
     color: colors.success,
     textAlign: 'center',
     marginBottom: spacing.lg,
-  },
-  hint: {
-    ...typography.small,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: spacing.sm,
   },
 });

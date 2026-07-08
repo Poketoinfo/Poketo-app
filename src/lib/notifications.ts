@@ -93,3 +93,23 @@ export async function cancelReminder(notificationId: string | null) {
     // notification déjà passée ou inexistante, on ignore
   }
 }
+/**
+ * Envoie une notification immédiate lorsqu'une transaction vient de passer
+ * en retard (échéance dépassée).
+ */
+export async function notifyOverdue(
+  contactName: string,
+  t: (key: any, vars?: Record<string, string | number>) => string
+) {
+  if (Platform.OS === 'web') return;
+  const granted = await ensureNotificationPermission();
+  if (!granted) return;
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: t('overdueNotifTitle'),
+      body: t('overdueNotifBody', { name: contactName }),
+    },
+    trigger: null, // immédiat
+  });
+}

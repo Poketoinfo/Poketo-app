@@ -19,31 +19,22 @@ export default function SplashScreen({ navigation }: Props) {
     let isMounted = true;
 
     const init = async () => {
-      // 1. On vérifie d'abord si l'app a été ouverte via un lien profond
-      // (reset-password, confirmation d'e-mail, etc.). Si oui, on route
-      // directement dessus SANS passer par la logique session/Login/Home,
-      // pour éviter que ce useEffect n'écrase la navigation attendue.
       const initialUrl = await Linking.getInitialURL();
 
       if (initialUrl) {
-        const { path } = Linking.parse(initialUrl);
+        const parsed = Linking.parse(initialUrl);
+        // Pour un schéma custom "poketo://reset-password", le segment
+        // après "://" est traité comme hostname et non comme path.
+        const target = (parsed.hostname || parsed.path || '').replace(/^\//, '');
 
-        if (path === 'reset-password') {
-          if (isMounted) navigation.replace('ResetPassword');
+        if (target === 'reset-password' || target === 'login' || target === 'verify-email') {
+          // La config `linking` du NavigationContainer prend déjà en charge
+          // le routage vers le bon écran : on ne fait rien de plus ici pour
+          // éviter un conflit de navigation.
           return;
         }
-        if (path === 'verify-email') {
-          if (isMounted) navigation.replace('Login');
-          return;
-        }
-        if (path === 'login') {
-          if (isMounted) navigation.replace('Login');
-          return;
-        }
-        // Ajoutez ici d'autres chemins de deep link si besoin
       }
 
-      // 2. Cas normal : ouverture classique de l'app (pas de lien profond)
       const { data } = await supabase.auth.getSession();
       const destination: 'Login' | 'Home' = data.session ? 'Home' : 'Login';
 
@@ -84,30 +75,9 @@ export default function SplashScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-    justifyContent: 'space-between',
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-  },
-  bottom: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl,
-  },
-  track: {
-    height: 6,
-    borderRadius: radius.full,
-    backgroundColor: colors.primaryLight,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: radius.full,
-    backgroundColor: colors.primary,
-  },
+  container: { flex: 1, backgroundColor: colors.white, justifyContent: 'space-between' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
+  bottom: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl },
+  track: { height: 6, borderRadius: radius.full, backgroundColor: colors.primaryLight, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: radius.full, backgroundColor: colors.primary },
 });

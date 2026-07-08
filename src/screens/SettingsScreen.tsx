@@ -15,13 +15,15 @@ import { LANGUAGE_LABELS, LanguageCode } from '../lib/i18n/translations';
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 const CURRENCY_OPTIONS: CurrencyCode[] = ['EUR', 'USD', 'MGA'];
-const LANGUAGE_OPTIONS: LanguageCode[] = ['fr', 'en', 'mg'];
+const LANGUAGE_OPTIONS: LanguageCode[] = ['fr', 'en', 'mg', 'es', 'de'];
 
 // Flag emojis for languages
 const LANGUAGE_FLAGS: Record<LanguageCode, string> = {
   fr: '🇫🇷',
   en: '🇬🇧',
   mg: '🇲🇬',
+  es: '🇪🇸',
+  de: '🇩🇪',
 };
 
 export default function SettingsScreen({ navigation }: Props) {
@@ -48,6 +50,14 @@ export default function SettingsScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.content}>
+        {/* Profile link */}
+<Pressable style={styles.profileCard} onPress={() => navigation.navigate('Profile')}>
+  <View style={styles.rowLeft}>
+    <Ionicons name="person-circle-outline" size={22} color={colors.primary} />
+    <Text style={styles.rowLabel}>{t('profileMenuItem')}</Text>
+  </View>
+  <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+</Pressable>
         {/* Language Section */}
         <Text style={styles.sectionLabel}>{t('languageLabel')}</Text>
         <View style={styles.card}>
@@ -192,4 +202,16 @@ const styles = StyleSheet.create({
   rowLabelActive: {
     color: colors.primary,
   },
+  profileCard: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  backgroundColor: colors.white,
+  borderRadius: radius.md,
+  borderWidth: 1,
+  borderColor: colors.border,
+  padding: spacing.md,
+  marginBottom: spacing.lg,
+  ...shadow.soft,
+},
 });
