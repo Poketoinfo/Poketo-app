@@ -4,7 +4,7 @@ export type RootStackParamList = {
   Signup: undefined;
   VerifyEmail: { email: string };
   ForgotPassword: undefined;
-  ResetPassword: undefined;
+ResetPassword: { prehandled?: boolean; status?: 'valid' | 'invalid' } | undefined;
   Home: undefined;
   AddTransaction: { fixedType?: 'pret' | 'dette' } | undefined;
   Settings: undefined;

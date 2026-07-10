@@ -43,6 +43,7 @@ type TranslationKeys = {
   verifyEmailTitle: string;
   verifyEmailMessage: string;
   resetPasswordVerifying: string;
+  resetLinkInvalid: string;
 
   // --- Ajouter dans TranslationKeys ---
   // Profile
@@ -150,6 +151,7 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
   fr: {
     appName: 'Poketo',
     resetPasswordVerifying: 'Vérification du lien en cours...',
+    resetLinkInvalid: 'Ce lien de réinitialisation est invalide ou a expiré. Demande un nouveau lien.',
 
     profileTitle: 'Mon profil',
     personalInfo: 'Informations personnelles',
@@ -278,6 +280,7 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
   en: {
     appName: 'Poketo',
     resetPasswordVerifying: 'Verifying link...',
+    resetLinkInvalid: 'This reset link is invalid or has expired. Request a new one.',
 
     profileTitle: 'My profile',
     personalInfo: 'Personal information',
@@ -406,6 +409,7 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
   mg: {
     appName: 'Poketo',
     resetPasswordVerifying: 'Manamarina ny rohy...',
+    resetLinkInvalid: 'Diso na lany daty ity rohy fanavaozana ity. Mangataha rohy vaovao.',
 
     profileTitle: 'Ny mombamomba ahy',
     personalInfo: 'Mombamomba manokana',
@@ -534,6 +538,7 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
   es: {
     appName: 'Poketo',
     resetPasswordVerifying: 'Verificando el enlace...',
+    resetLinkInvalid: 'Este enlace de restablecimiento no es válido o ha expirado. Solicita uno nuevo.',
 
     profileTitle: 'Mi perfil',
     personalInfo: 'Información personal',
@@ -662,6 +667,7 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
   de: {
     appName: 'Poketo',
     resetPasswordVerifying: 'Link wird überprüft...',
+    resetLinkInvalid: 'Dieser Link zum Zurücksetzen ist ungültig oder abgelaufen. Fordere einen neuen an.',
 
     profileTitle: 'Mein Profil',
     personalInfo: 'Persönliche Informationen',

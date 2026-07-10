@@ -1,5 +1,7 @@
+// ResetPasswordScreen.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -20,25 +22,29 @@ import { useLanguage } from '../lib/i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResetPassword'>;
 
-const EXCHANGE_WAIT_MS = 5000; // délai max qu'on attend silencieusement avant de tenter quand même
+const EXCHANGE_WAIT_MS = 8000;
 
-export default function ResetPasswordScreen({ navigation }: Props) {
+type LinkStatus = 'checking' | 'valid' | 'invalid';
+
+export default function ResetPasswordScreen({ navigation, route }: Props) {
   const { t } = useLanguage();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [linkInvalid, setLinkInvalid] = useState(false);
 
-  // URL captée par expo-linking (lancement à froid ou événement pendant que
-  // l'app est ouverte).
+  // Si Splash a déjà traité le lien (cas normal du cold start), on récupère
+  // directement le statut connu et on ne retraite JAMAIS l'URL — un code
+  // PKCE est à usage unique, le retraiter provoquerait une fausse erreur
+  // "lien expiré" même quand tout s'est bien passé.
+  const prehandled = route.params?.prehandled === true;
+  const [linkStatus, setLinkStatus] = useState<LinkStatus>(
+    prehandled ? (route.params?.status ?? 'invalid') : 'checking'
+  );
+
   const url = Linking.useURL();
 
-  const handledRef = useRef(false);
-  // Cette promesse représente le traitement du lien (exchange du code, ou
-  // setSession si le lien utilise le flux implicite). handleReset l'attend
-  // brièvement avant de tenter updateUser, sans jamais bloquer l'affichage
-  // du formulaire.
+  const handledRef = useRef(prehandled);
   const exchangePromiseRef = useRef<Promise<void> | null>(null);
 
   const processUrl = async (rawUrl: string): Promise<void> => {
@@ -47,23 +53,54 @@ export default function ResetPasswordScreen({ navigation }: Props) {
 
     try {
       const parsed = Linking.parse(rawUrl);
-      const code = parsed.queryParams?.code as string | undefined;
+      const qp = parsed.queryParams ?? {};
 
-      if (code) {
-        // Flux PKCE (celui utilisé par ce projet, cf. supabase.ts flowType: 'pkce')
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(rawUrl);
-        if (exchangeError) {
-          console.warn('exchangeCodeForSession error:', exchangeError.message);
-        }
+      const errorCode = (qp.error_code || qp.error) as string | undefined;
+      if (errorCode) {
+        console.warn('Lien de réinitialisation invalide:', qp.error_description ?? errorCode);
+        setLinkStatus('invalid');
         return;
       }
 
-      // Filet de sécurité pour un éventuel flux implicite (#access_token=...)
+      const code = qp.code as string | undefined;
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(rawUrl);
+        if (exchangeError) {
+          console.warn('exchangeCodeForSession error:', exchangeError.message);
+          setLinkStatus('invalid');
+          return;
+        }
+        setLinkStatus('valid');
+        return;
+      }
+
+      const tokenHash = (qp.token_hash || qp.token) as string | undefined;
+      if (tokenHash) {
+        const { error: otpError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        });
+        if (otpError) {
+          console.warn('verifyOtp error:', otpError.message);
+          setLinkStatus('invalid');
+          return;
+        }
+        setLinkStatus('valid');
+        return;
+      }
+
       const hashPart = rawUrl.split('#')[1];
       if (hashPart) {
         const params = new URLSearchParams(hashPart);
         const access_token = params.get('access_token');
         const refresh_token = params.get('refresh_token');
+        const hashError = params.get('error_code') || params.get('error');
+
+        if (hashError) {
+          console.warn('Lien de réinitialisation invalide (hash):', hashError);
+          setLinkStatus('invalid');
+          return;
+        }
 
         if (access_token && refresh_token) {
           const { error: setSessionError } = await supabase.auth.setSession({
@@ -72,30 +109,42 @@ export default function ResetPasswordScreen({ navigation }: Props) {
           });
           if (setSessionError) {
             console.warn('setSession error:', setSessionError.message);
+            setLinkStatus('invalid');
+            return;
           }
+          setLinkStatus('valid');
+          return;
         }
       }
+
+      setLinkStatus((prev) => (prev === 'checking' ? 'valid' : prev));
     } catch (e: any) {
       console.warn('processUrl threw:', e?.message);
+      setLinkStatus('invalid');
     }
   };
 
   const startProcessing = (rawUrl: string) => {
+    if (prehandled) return; // déjà traité par Splash, on ignore toute URL
     if (exchangePromiseRef.current) return;
     exchangePromiseRef.current = processUrl(rawUrl);
   };
 
+  // Cas "warm start" : l'app était déjà ouverte quand le lien a été tapé.
   useEffect(() => {
     if (url) startProcessing(url);
   }, [url]);
 
-  // Filet de sécurité au montage, au cas où useURL() n'aurait pas encore
-  // de valeur alors que l'URL de lancement existe déjà.
   useEffect(() => {
+    if (prehandled) return;
     let isMounted = true;
     Linking.getInitialURL().then((initial) => {
       if (isMounted && initial && !handledRef.current) {
         startProcessing(initial);
+      } else if (isMounted && !initial && !handledRef.current) {
+        setTimeout(() => {
+          if (isMounted) setLinkStatus((prev) => (prev === 'checking' ? 'invalid' : prev));
+        }, EXCHANGE_WAIT_MS);
       }
     });
     return () => {
@@ -113,7 +162,6 @@ export default function ResetPasswordScreen({ navigation }: Props) {
 
   const handleReset = async () => {
     setError('');
-    setLinkInvalid(false);
 
     if (password.length < 6) {
       setError(t('errorPasswordShort'));
@@ -121,21 +169,15 @@ export default function ResetPasswordScreen({ navigation }: Props) {
     }
 
     setLoading(true);
-
-    // On attend silencieusement (max 5s) que le lien ait fini d'être traité
-    // s'il est encore en cours de vérification, sans jamais bloquer le
-    // formulaire visuellement.
     await waitForExchange();
 
     const { error: updateError } = await supabase.auth.updateUser({ password });
     setLoading(false);
 
     if (updateError) {
-      // "Auth session missing" ou équivalent = le lien n'a pas pu être
-      // validé (expiré, déjà utilisé, ou mal configuré côté Supabase).
       const message = updateError.message?.toLowerCase() ?? '';
       if (message.includes('session') || message.includes('token')) {
-        setLinkInvalid(true);
+        setLinkStatus('invalid');
       } else {
         setError(updateError.message);
       }
@@ -171,6 +213,21 @@ export default function ResetPasswordScreen({ navigation }: Props) {
                 style={{ marginTop: spacing.lg }}
               />
             </>
+          ) : linkStatus === 'checking' ? (
+            <View style={styles.checkingBox}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={styles.checkingText}>{t('resetPasswordVerifying')}</Text>
+            </View>
+          ) : linkStatus === 'invalid' ? (
+            <View style={styles.form}>
+              <Text style={styles.error}>{t('resetLinkInvalid')}</Text>
+              <PrimaryButton
+                title={t('forgotPassword')}
+                onPress={() => navigation.replace('ForgotPassword')}
+                variant="outline"
+                style={{ marginTop: spacing.sm }}
+              />
+            </View>
           ) : (
             <View style={styles.form}>
               <PasswordField
@@ -181,18 +238,6 @@ export default function ResetPasswordScreen({ navigation }: Props) {
               />
 
               {!!error && <Text style={styles.error}>{error}</Text>}
-
-              {linkInvalid && (
-                <>
-                  <Text style={styles.error}>{t('errorGeneric')}</Text>
-                  <PrimaryButton
-                    title={t('forgotPassword')}
-                    onPress={() => navigation.replace('ForgotPassword')}
-                    variant="outline"
-                    style={{ marginBottom: spacing.sm }}
-                  />
-                </>
-              )}
 
               <PrimaryButton
                 title={t('resetPasswordButton')}
@@ -232,5 +277,14 @@ const styles = StyleSheet.create({
     color: colors.success,
     textAlign: 'center',
     marginBottom: spacing.lg,
+  },
+  checkingBox: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+    gap: spacing.sm,
+  },
+  checkingText: {
+    ...typography.body,
+    color: colors.textSecondary,
   },
 });

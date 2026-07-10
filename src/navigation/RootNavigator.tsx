@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
@@ -16,6 +16,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import TransactionDetailScreen from '../screens/TransactionDetailScreen';
 import TransactionHistoryScreen from '../screens/TransactionHistoryScreen';
 import InactivityManager from '../lib/InactivityManager';
+import { handleRecoveryUrl, isResetPasswordUrl } from '../lib/authDeepLink';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -30,7 +31,10 @@ const linking = {
       Signup: 'signup',
       VerifyEmail: 'verify-email',
       ForgotPassword: 'forgot-password',
-      ResetPassword: 'reset-password',
+      // 'reset-password' est volontairement ABSENT d'ici : ce lien contient
+      // un code à usage unique, traité manuellement (Splash pour cold
+      // start, listener ci-dessous pour warm start) pour qu'il ne soit
+      // jamais consommé deux fois.
       Home: 'home',
       Settings: 'settings',
       Profile: 'profile',
@@ -42,6 +46,25 @@ const linking = {
 };
 
 export default function RootNavigator() {
+  const lastHandledUrl = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Warm start : l'app est déjà ouverte quand le lien est tapé. Le cold
+    // start est géré exclusivement par SplashScreen.
+    const subscription = Linking.addEventListener('url', async ({ url }) => {
+      if (!isResetPasswordUrl(url)) return;
+      if (lastHandledUrl.current === url) return;
+      lastHandledUrl.current = url;
+
+      const status = await handleRecoveryUrl(url);
+      if (navigationRef.isReady()) {
+        navigationRef.navigate('ResetPassword', { prehandled: true, status });
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   return (
     <NavigationContainer ref={navigationRef} linking={linking}>
       <InactivityManager navigationRef={navigationRef} />

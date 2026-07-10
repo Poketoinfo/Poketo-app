@@ -7,10 +7,41 @@ import { colors, radius, spacing } from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { supabase } from '../lib/supabase';
+import { handleRecoveryUrl, isResetPasswordUrl } from '../lib/authDeepLink';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
 const LOAD_DURATION = 1200;
+// Sur Android en particulier, l'URL de lancement (getInitialURL) peut
+// arriver quelques centaines de ms après le montage de l'écran, sous forme
+// d'événement 'url' plutôt que d'URL initiale immédiatement disponible. On
+// attend ce court délai avant de conclure "pas de deep link" et de partir
+// sur Login.
+const DEEP_LINK_GRACE_MS = 800;
+
+// Course entre getInitialURL() et un éventuel événement 'url' qui arriverait
+// dans la foulée du cold start.
+function waitForLaunchUrl(graceMs: number): Promise<string | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    let subscription: { remove: () => void } | null = null;
+
+    const finish = (url: string | null) => {
+      if (settled) return;
+      settled = true;
+      subscription?.remove();
+      resolve(url);
+    };
+
+    subscription = Linking.addEventListener('url', ({ url }) => finish(url));
+
+    Linking.getInitialURL().then((url) => {
+      if (url) finish(url);
+    });
+
+    setTimeout(() => finish(null), graceMs);
+  });
+}
 
 export default function SplashScreen({ navigation }: Props) {
   const progress = useRef(new Animated.Value(0)).current;
@@ -19,20 +50,23 @@ export default function SplashScreen({ navigation }: Props) {
     let isMounted = true;
 
     const init = async () => {
-      const initialUrl = await Linking.getInitialURL();
+      const initialUrl = await waitForLaunchUrl(DEEP_LINK_GRACE_MS);
 
-      if (initialUrl) {
-        const parsed = Linking.parse(initialUrl);
-        // Pour un schéma custom "poketo://reset-password", le segment
-        // après "://" est traité comme hostname et non comme path.
-        const target = (parsed.hostname || parsed.path || '').replace(/^\//, '');
-
-        if (target === 'reset-password' || target === 'login' || target === 'verify-email') {
-          // La config `linking` du NavigationContainer prend déjà en charge
-          // le routage vers le bon écran : on ne fait rien de plus ici pour
-          // éviter un conflit de navigation.
-          return;
+      if (initialUrl && isResetPasswordUrl(initialUrl)) {
+        // Traité ICI, une seule fois. On navigue directement avec le
+        // résultat déjà connu : ResetPasswordScreen ne retraitera jamais
+        // cette URL.
+        const status = await handleRecoveryUrl(initialUrl);
+        if (isMounted) {
+          navigation.replace('ResetPassword', { prehandled: true, status });
         }
+        return;
+      }
+
+      // Les autres deep links (login, verify-email, ...) restent gérés par
+      // la résolution automatique de React Navigation : pas d'action ici.
+      if (initialUrl && (initialUrl.includes('login') || initialUrl.includes('verify-email'))) {
+        return;
       }
 
       const { data } = await supabase.auth.getSession();
