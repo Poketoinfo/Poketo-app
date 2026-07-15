@@ -28,9 +28,11 @@ import { useLanguage } from '../lib/i18n/LanguageContext';
 import {
   Transaction,
   TransactionType,
+  TransactionStatus,
   deleteTransaction,
   fetchTransactionById,
   updateTransaction,
+  updateTransactionStatus,
   uploadReceiptPhoto,
 } from '../lib/transactions';
 import { supabase } from '../lib/supabase';
@@ -39,7 +41,6 @@ import { scheduleDueDateReminders } from '../lib/notifications';
 type Props = NativeStackScreenProps<RootStackParamList, 'TransactionDetail'>;
 
 // Cross-platform confirmation helper
-// Uses Alert.alert on mobile and window.confirm on web
 function confirmAsync(
   title: string,
   message: string,
@@ -57,9 +58,16 @@ function confirmAsync(
   });
 }
 
+const STATUS_ORDER: TransactionStatus[] = ['en_cours', 'en_attente_validation', 'paye'];
+const STATUS_COLORS: Record<TransactionStatus, string> = {
+  en_cours: colors.primary,
+  en_attente_validation: '#E08E0B',
+  paye: colors.success,
+};
+
 export default function TransactionDetailScreen({ navigation, route }: Props) {
   const { id } = route.params;
-  const { currency } = useCurrency();
+  const { currency, convert } = useCurrency();
   const { t } = useLanguage();
 
   // State Management
@@ -107,6 +115,10 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
       setError(t('errorInvalidAmount'));
       return;
     }
+    if (!dueDate) {
+      setError(t('errorDueDateRequired'));
+      return;
+    }
 
     setSaving(true);
     try {
@@ -122,7 +134,8 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
         }
       }
 
-      // Update transaction
+      // Update transaction — la devise d'origine (transaction.currency) n'est
+      // volontairement pas modifiée ici pour ne pas fausser l'historique.
       await updateTransaction(transaction.id, {
         type,
         amount: numericAmount,
@@ -132,15 +145,13 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
         due_date: dueDate,
       });
 
-      // Schedule reminders if due date is set
-      if (dueDate) {
-        await scheduleDueDateReminders({
-          contactName: contactName.trim(),
-          amount: numericAmount,
-          type,
-          dueDateISO: dueDate,
-        });
-      }
+      // Schedule reminders
+      await scheduleDueDateReminders({
+        contactName: contactName.trim(),
+        amount: numericAmount,
+        type,
+        dueDateISO: dueDate,
+      });
 
       // Update local state
       setTransaction({
@@ -181,6 +192,26 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
       setSaving(false);
     }
   };
+
+  // Cycle status: en_cours -> en_attente_validation -> paye -> en_cours ...
+  const cycleStatus = async () => {
+    if (!transaction) return;
+    const currentIndex = STATUS_ORDER.indexOf(transaction.status);
+    const nextStatus = STATUS_ORDER[(currentIndex + 1) % STATUS_ORDER.length];
+    try {
+      await updateTransactionStatus(transaction.id, nextStatus);
+      setTransaction({ ...transaction, status: nextStatus });
+    } catch (e: any) {
+      setError(e.message ?? t('errorGeneric'));
+    }
+  };
+
+  const statusLabel = (status: TransactionStatus) =>
+    status === 'en_cours'
+      ? t('statusEnCours')
+      : status === 'en_attente_validation'
+      ? t('statusEnAttenteValidation')
+      : t('statusPaye');
 
   // Loading State
   if (loading) {
@@ -232,11 +263,13 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           {!editing ? (
             // View Mode
@@ -248,12 +281,39 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
                     { color: type === 'pret' ? colors.success : colors.error },
                   ]}
                 >
-                  {formatAmount(type === 'pret' ? transaction.amount : -transaction.amount, currency)}
+                  {formatAmount(
+                    convert(
+                      type === 'pret' ? transaction.amount : -transaction.amount,
+                      transaction.currency
+                    ),
+                    currency
+                  )}
                 </Text>
                 <Text style={styles.summaryType}>
                   {type === 'pret' ? t('loan') : t('debt')}
                 </Text>
+                {transaction.currency !== currency && (
+                  <Text style={styles.originalAmount}>
+                    ({formatAmount(transaction.amount, transaction.currency)})
+                  </Text>
+                )}
               </View>
+
+              {/* Statut - cliquable pour changer d'état */}
+              <Pressable style={styles.statusCard} onPress={cycleStatus}>
+                <View style={styles.statusRow}>
+                  <View>
+                    <Text style={styles.detailLabel}>{t('statusLabel')}</Text>
+                    <Text style={[styles.statusValue, { color: STATUS_COLORS[transaction.status] }]}>
+                      {statusLabel(transaction.status)}
+                    </Text>
+                  </View>
+                  <View style={styles.statusChangeButton}>
+                    <Ionicons name="sync-outline" size={16} color={colors.primary} />
+                    <Text style={styles.statusChangeHint}>{t('changeStatus')}</Text>
+                  </View>
+                </View>
+              </Pressable>
 
               <DetailRow label={t('contactLabel')} value={transaction.contact_name} />
               {!!transaction.note && <DetailRow label={t('addNote')} value={transaction.note} />}
@@ -298,13 +358,16 @@ export default function TransactionDetailScreen({ navigation, route }: Props) {
                   value={amount}
                   onChangeText={setAmount}
                 />
-                <Text style={styles.amountSuffix}>{CURRENCIES[currency].symbol}</Text>
+                {/* Le montant reste dans la devise d'origine de la transaction,
+                    pas dans la devise d'affichage active, pour ne pas fausser l'historique. */}
+                <Text style={styles.amountSuffix}>{CURRENCIES[transaction.currency].symbol}</Text>
               </View>
 
               <TextField label={t('contactLabel')} value={contactName} onChangeText={setContactName} />
               <TextField label={t('addNote')} value={note} onChangeText={setNote} />
               <DueDatePicker label={t('dueDateLabel')} value={dueDate} onChange={setDueDate} />
 
+              <Text style={styles.label}>{t('addPhoto')}</Text>
               <PhotoPicker
                 photoUri={photoUri}
                 onChange={setPhotoUri}
@@ -370,6 +433,13 @@ const styles = StyleSheet.create({
   scroll: {
     padding: spacing.lg,
   },
+  label: {
+    ...typography.small,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+    marginTop: spacing.sm,
+  },
   summaryCard: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,
@@ -377,7 +447,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     paddingVertical: spacing.xl,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     ...shadow.soft,
   },
   summaryAmount: {
@@ -390,6 +460,40 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  originalAmount: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  statusCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    ...shadow.soft,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusValue: {
+    ...typography.body,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  statusChangeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statusChangeHint: {
+    ...typography.small,
+    color: colors.primary,
+    fontWeight: '600',
   },
   detailRow: {
     flexDirection: 'row',

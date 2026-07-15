@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const colors = {
   primary: '#1E5EFF',      // bleu principal
   primaryDark: '#123FBF',  // bleu profond (pressed, accents)
@@ -7,12 +9,14 @@ export const colors = {
   text: '#101828',
   textSecondary: '#667085',
   border: '#E4E7EC',
-  error: '#E4362F',
   white: '#FFFFFF',
-  success: '#12A150',
+
+  // Couleurs sémantiques adoucies (moins saturées, moins agressives à l'oeil)
+  success: '#3AA66E',      // vert doux
   successLight: '#E7F8EF',
-  danger: '#E4362F',
-  dangerLight: '#FDECEC',
+  error: '#D9695F',        // rouge corail doux
+  danger: '#D9695F',
+  dangerLight: '#FCEEED',
 };
 
 export const spacing = {
@@ -30,8 +34,6 @@ export const radius = {
   lg: 20,
   full: 999,
 };
-
-import { Platform } from 'react-native';
 
 export const shadow = {
   soft: Platform.select({

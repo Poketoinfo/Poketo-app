@@ -1,9 +1,11 @@
-export type LanguageCode = 'fr' | 'en' | 'mg';
+export type LanguageCode = 'fr' | 'en' | 'mg' | 'es' | 'de';
 
 export const LANGUAGE_LABELS: Record<LanguageCode, string> = {
   fr: 'Français',
   en: 'English',
   mg: 'Malagasy',
+  es: 'Español',
+  de: 'Deutsch',
 };
 
 type TranslationKeys = {
@@ -41,6 +43,40 @@ type TranslationKeys = {
   verifyEmailTitle: string;
   verifyEmailMessage: string;
   resetPasswordVerifying: string;
+  resetLinkInvalid: string;
+
+  // --- Ajouter dans TranslationKeys ---
+  // Profile
+  profileTitle: string;
+  personalInfo: string;
+  usernameFieldLabel: string;
+  emailFieldLabel: string;
+  changePasswordTitle: string;
+  currentPasswordLabel: string;
+  newPasswordFieldLabel: string;
+  confirmPasswordLabel: string;
+  savePersonalInfo: string;
+  savePasswordButton: string;
+  passwordUpdated: string;
+  infoUpdated: string;
+  errorPasswordMismatch: string;
+  profileMenuItem: string;
+
+  // History
+  historyTitle: string;
+  historyLoans: string;
+  historyDebts: string;
+
+  // Status
+  statusLabel: string;
+  statusEnCours: string;
+  statusEnAttenteValidation: string;
+  statusPaye: string;
+  changeStatus: string;
+  overdueNotifTitle: string;
+  overdueNotifBody: string;
+
+  errorDueDateRequired: string;
 
   // Home
   balanceGlobal: string;
@@ -109,12 +145,58 @@ type TranslationKeys = {
   errorPhotoPermission: string;
   errorCameraPermission: string;
   errorUserNotFound: string;
+  errorAcceptTerms:string;
+  acceptTermsPrefix:string;
+  privacyPolicyLink:string;
+  andConnector:string;
+  termsOfUseLink:string;
+  otpCodeLabel: string,
+otpCodePlaceholder: string,
 };
 
 export const translations: Record<LanguageCode, TranslationKeys> = {
   fr: {
     appName: 'Poketo',
     resetPasswordVerifying: 'Vérification du lien en cours...',
+    resetLinkInvalid: 'Ce lien de réinitialisation est invalide ou a expiré. Demande un nouveau lien.',
+
+    otpCodeLabel: 'Code reçu par email',
+otpCodePlaceholder: '123456',
+
+    profileTitle: 'Mon profil',
+    personalInfo: 'Informations personnelles',
+    usernameFieldLabel: "Nom d'utilisateur",
+    emailFieldLabel: 'E-mail',
+    changePasswordTitle: 'Changer le mot de passe',
+    currentPasswordLabel: 'Mot de passe actuel',
+    newPasswordFieldLabel: 'Nouveau mot de passe',
+    confirmPasswordLabel: 'Confirmer le mot de passe',
+    savePersonalInfo: 'Enregistrer les informations',
+    savePasswordButton: 'Mettre à jour le mot de passe',
+    passwordUpdated: 'Mot de passe mis à jour !',
+    infoUpdated: 'Informations mises à jour !',
+    errorPasswordMismatch: 'Les mots de passe ne correspondent pas.',
+    profileMenuItem: 'Profil',
+
+    errorAcceptTerms: "Merci d'accepter la politique de confidentialité et les conditions d'utilisation.",
+acceptTermsPrefix: "J'accepte la",
+privacyPolicyLink: "politique de confidentialité",
+andConnector: "et les",
+termsOfUseLink: "conditions d'utilisation",
+
+    historyTitle: 'Historique',
+    historyLoans: 'Prêts',
+    historyDebts: 'Dettes',
+
+    statusLabel: 'Statut',
+    statusEnCours: 'En cours',
+    statusEnAttenteValidation: 'En attente de validation',
+    statusPaye: 'Payé',
+    changeStatus: 'Changer le statut',
+    overdueNotifTitle: 'Échéance dépassée',
+    overdueNotifBody: '{name} a dépassé sa date d\'échéance.',
+
+    errorDueDateRequired: "La date d'échéance est obligatoire.",
 
     loginTitle: 'Connexion',
     loginSubtitle: 'Content de te revoir',
@@ -169,7 +251,7 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     amount: 'Montant',
     contactLabel: 'À qui ? / De qui ?',
     contactPlaceholder: 'Entrez un nom... (ex: Paul)',
-    dueDateLabel: "Date d'échéance (optionnel)",
+    dueDateLabel: "Date d'échéance",
     dueDateHint: 'Rappel automatique 5 jours avant, et alerte le jour même.',
     optionsLabel: 'Options (optionnel)',
     addNote: 'Ajouter une note / explication',
@@ -214,6 +296,43 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
   en: {
     appName: 'Poketo',
     resetPasswordVerifying: 'Verifying link...',
+    resetLinkInvalid: 'This reset link is invalid or has expired. Request a new one.',
+otpCodeLabel: 'Code received by email',
+otpCodePlaceholder: '123456',
+    profileTitle: 'My profile',
+    personalInfo: 'Personal information',
+    usernameFieldLabel: 'Username',
+    emailFieldLabel: 'Email',
+    changePasswordTitle: 'Change password',
+    currentPasswordLabel: 'Current password',
+    newPasswordFieldLabel: 'New password',
+    confirmPasswordLabel: 'Confirm password',
+    savePersonalInfo: 'Save information',
+    savePasswordButton: 'Update password',
+    passwordUpdated: 'Password updated!',
+    infoUpdated: 'Information updated!',
+    errorPasswordMismatch: 'Passwords do not match.',
+    profileMenuItem: 'Profile',
+
+    historyTitle: 'History',
+    historyLoans: 'Loans',
+    historyDebts: 'Debts',
+
+    errorAcceptTerms: "Please accept the privacy policy and terms of use.",
+acceptTermsPrefix: "I accept the",
+privacyPolicyLink: "privacy policy",
+andConnector: "and the",
+termsOfUseLink: "terms of use",
+
+    statusLabel: 'Status',
+    statusEnCours: 'In progress',
+    statusEnAttenteValidation: 'Pending validation',
+    statusPaye: 'Paid',
+    changeStatus: 'Change status',
+    overdueNotifTitle: 'Overdue',
+    overdueNotifBody: '{name} is past its due date.',
+
+    errorDueDateRequired: 'The due date is required.',
 
     loginTitle: 'Log in',
     loginSubtitle: 'Welcome back',
@@ -268,7 +387,7 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     amount: 'Amount',
     contactLabel: 'To whom? / From whom?',
     contactPlaceholder: 'Enter a name... (e.g. Paul)',
-    dueDateLabel: 'Due date (optional)',
+    dueDateLabel: 'Due date',
     dueDateHint: 'Automatic reminder 5 days before, and alert on the day.',
     optionsLabel: 'Options (optional)',
     addNote: 'Add a note / explanation',
@@ -313,6 +432,43 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
   mg: {
     appName: 'Poketo',
     resetPasswordVerifying: 'Manamarina ny rohy...',
+    resetLinkInvalid: 'Diso na lany daty ity rohy fanavaozana ity. Mangataha rohy vaovao.',
+otpCodeLabel: 'Kaody noraisina amin\'ny mailaka',
+otpCodePlaceholder: '123456',
+    profileTitle: 'Ny mombamomba ahy',
+    personalInfo: 'Mombamomba manokana',
+    usernameFieldLabel: 'Anaram-pikasa',
+    emailFieldLabel: 'Mailaka',
+    changePasswordTitle: 'Ovay ny tenimiafina',
+    currentPasswordLabel: 'Tenimiafina ankehitriny',
+    newPasswordFieldLabel: 'Tenimiafina vaovao',
+    confirmPasswordLabel: 'Hamafiso ny tenimiafina',
+    savePersonalInfo: 'Tehirizo ny mombamomba',
+    savePasswordButton: 'Avaoy ny tenimiafina',
+    passwordUpdated: 'Voaova ny tenimiafina!',
+    infoUpdated: 'Voaova ny mombamomba!',
+    errorPasswordMismatch: 'Tsy mitovy ny tenimiafina.',
+    profileMenuItem: 'Momba ahy',
+
+    errorAcceptTerms: "Ekeo azafady ny politika momba ny fiarovana ny tsiambaratelo sy ny fepetra fampiasana.",
+acceptTermsPrefix: "Ekeko ny",
+privacyPolicyLink: "politika momba ny fiarovana ny tsiambaratelo",
+andConnector: "sy ny",
+termsOfUseLink: "fepetra fampiasana",
+
+    historyTitle: 'Tantara',
+    historyLoans: 'Trosa nomena',
+    historyDebts: 'Trosa noraisina',
+
+    statusLabel: 'Sata',
+    statusEnCours: 'Mandeha',
+    statusEnAttenteValidation: 'Miandry fanamarinana',
+    statusPaye: 'Voaloa',
+    changeStatus: 'Ovay ny sata',
+    overdueNotifTitle: 'Lasa ny fetr\'andro',
+    overdueNotifBody: 'Lasa ny fetr\'andron\'i {name}.',
+
+    errorDueDateRequired: "Ilaina ny fetr'andro.",
 
     loginTitle: 'Hiditra',
     loginSubtitle: 'Tonga soa indray',
@@ -346,7 +502,7 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     verifyEmailMessage: "Nalefa tany amin'ny {email} ny mailaka fanamarinana. Kitiho ny rohy mba hanamarinana ny kaontinao, avy eo miverina hiditra.",
 
     balanceGlobal: 'Balance manontolo',
-    onMeDoit: 'Trosa amiko',
+    onMeDoit: 'Trosa nomena',
     jeDois: 'Trosako',
     recentOps: 'Fikarohana farany',
     results: 'Valiny',
@@ -367,7 +523,7 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     amount: 'Vola',
     contactLabel: 'Amin\'iza? / Avy amin\'iza?',
     contactPlaceholder: 'Ampidino ny anarana... (ohatra: Paul)',
-    dueDateLabel: 'Fetr\'andro (tsy tsy maintsy)',
+    dueDateLabel: "Fetr\'andro",
     dueDateHint: 'Fampahatsiahivana 5 andro mialoha, ary fampandrenesana amin\'ny andro mihitsy.',
     optionsLabel: 'Safidy hafa (tsy tsy maintsy)',
     addNote: 'Ampio fanamarihana',
@@ -407,6 +563,279 @@ export const translations: Record<LanguageCode, TranslationKeys> = {
     errorPhotoPermission: 'Ilaina ny fidirana amin\'ny sary.',
     errorCameraPermission: 'Ilaina ny fidirana amin\'ny kamera.',
     errorUserNotFound: 'Tsy hita ny mpikambana.',
+  },
+
+  es: {
+    appName: 'Poketo',
+    resetPasswordVerifying: 'Verificando el enlace...',
+    resetLinkInvalid: 'Este enlace de restablecimiento no es válido o ha expirado. Solicita uno nuevo.',
+otpCodeLabel: 'Código recibido por email',
+otpCodePlaceholder: '123456',
+    profileTitle: 'Mi perfil',
+    personalInfo: 'Información personal',
+    usernameFieldLabel: 'Nombre de usuario',
+    emailFieldLabel: 'Correo electrónico',
+    changePasswordTitle: 'Cambiar contraseña',
+    currentPasswordLabel: 'Contraseña actual',
+    newPasswordFieldLabel: 'Nueva contraseña',
+    confirmPasswordLabel: 'Confirmar contraseña',
+    savePersonalInfo: 'Guardar información',
+    savePasswordButton: 'Actualizar contraseña',
+    passwordUpdated: '¡Contraseña actualizada!',
+    infoUpdated: '¡Información actualizada!',
+    errorPasswordMismatch: 'Las contraseñas no coinciden.',
+    profileMenuItem: 'Perfil',
+
+    errorAcceptTerms: "Por favor, acepta la política de privacidad y las condiciones de uso.",
+acceptTermsPrefix: "Acepto la",
+privacyPolicyLink: "política de privacidad",
+andConnector: "y las",
+termsOfUseLink: "condiciones de uso",
+
+
+    historyTitle: 'Historial',
+    historyLoans: 'Préstamos',
+    historyDebts: 'Deudas',
+
+    statusLabel: 'Estado',
+    statusEnCours: 'En curso',
+    statusEnAttenteValidation: 'Pendiente de validación',
+    statusPaye: 'Pagado',
+    changeStatus: 'Cambiar estado',
+    overdueNotifTitle: 'Vencido',
+    overdueNotifBody: '{name} ha superado su fecha de vencimiento.',
+
+    errorDueDateRequired: 'La fecha de vencimiento es obligatoria.',
+
+    loginTitle: 'Iniciar sesión',
+    loginSubtitle: 'Bienvenido de nuevo',
+    emailLabel: 'Correo electrónico',
+    emailPlaceholder: 'tu@ejemplo.com',
+    emailOrUsernameLabel: 'Correo electrónico o nombre de usuario',
+    emailOrUsernamePlaceholder: 'tu@ejemplo.com o nombre de usuario',
+    passwordLabel: 'Contraseña',
+    passwordPlaceholder: '••••••••',
+    loginButton: 'Iniciar sesión',
+    noAccount: '¿No tienes cuenta?',
+    createAccount: 'Crear una cuenta',
+    signupTitle: 'Crear una cuenta',
+    signupSubtitle: 'Únete en unos segundos',
+    usernameLabel: 'Nombre de usuario',
+    usernamePlaceholder: 'ej: Poketo_user',
+    signupButton: 'Registrarse',
+    haveAccount: '¿Ya tienes una cuenta?',
+    backToLogin: 'Iniciar sesión',
+    forgotPassword: '¿Olvidaste tu contraseña?',
+    forgotPasswordTitle: 'Contraseña olvidada',
+    forgotPasswordSubtitle: 'Introduce tu correo para recibir un enlace de restablecimiento.',
+    sendResetLink: 'Enviar enlace',
+    resetLinkSent: '¡Correo enviado! Revisa tu bandeja de entrada.',
+    newPasswordLabel: 'Nueva contraseña',
+    resetPasswordTitle: 'Restablecer contraseña',
+    resetPasswordSubtitle: 'Elige una nueva contraseña para tu cuenta.',
+    resetPasswordButton: 'Restablecer',
+    resetPasswordSuccess: '¡Contraseña actualizada! Ya puedes iniciar sesión.',
+    verifyEmailTitle: 'Confirma tu cuenta',
+    verifyEmailMessage: 'Se envió un correo de confirmación a {email}. Haz clic en el enlace para activar tu cuenta y vuelve a iniciar sesión.',
+
+    balanceGlobal: 'Balance general',
+    onMeDoit: 'Me deben',
+    jeDois: 'Debo',
+    recentOps: 'Actividad reciente',
+    results: 'Resultados',
+    searchPlaceholder: 'Buscar un nombre, una nota...',
+    noOpsYet: 'Aún no hay operaciones. Añade la primera con el botón de abajo.',
+    noResults: 'Ninguna operación coincide con tu búsqueda.',
+    loan: 'Préstamo',
+    debt: 'Deuda',
+    dueToday: 'Vence hoy',
+    overdue: 'Vencido',
+    dueInDays: 'Vence en {n} d',
+    addButton: 'Añadir',
+
+    addTitle: 'Nueva operación',
+    selectType: 'Selecciona el tipo',
+    iLent: 'Presté',
+    iBorrowed: 'Pedí prestado',
+    amount: 'Monto',
+    contactLabel: '¿A quién? / ¿De quién?',
+    contactPlaceholder: 'Escribe un nombre... (ej: Paul)',
+    dueDateLabel: 'Fecha de vencimiento',
+    dueDateHint: 'Recordatorio automático 5 días antes, y aviso el mismo día.',
+    optionsLabel: 'Opciones (opcional)',
+    addNote: 'Añadir una nota / explicación',
+    notePlaceholder: 'ej: prestado para el restaurante',
+    addPhoto: 'Tomar / Añadir una foto',
+    changePhoto: 'Cambiar foto',
+    takePhoto: 'Tomar una foto',
+    chooseFromLibrary: 'Elegir de la galería',
+    removePhoto: 'Eliminar foto',
+    validate: 'Confirmar',
+    removeDate: 'Quitar',
+    selectDate: 'Seleccionar una fecha',
+
+    detailTitle: 'Detalle de la operación',
+    editTitle: 'Editar',
+    addedOn: 'Añadido el',
+    save: 'Guardar',
+    cancel: 'Cancelar',
+    deleteConfirmTitle: '¿Eliminar esta operación?',
+    deleteConfirmMessage: 'Esta acción es definitiva y no se puede deshacer.',
+    deleteConfirmYes: 'Eliminar',
+    deleteConfirmNo: 'Cancelar',
+    notFound: 'Operación no encontrada.',
+
+    settingsTitle: 'Ajustes',
+    currencyLabel: 'Moneda',
+    languageLabel: 'Idioma',
+    systemLanguage: 'Automático (sistema)',
+    logout: 'Cerrar sesión',
+
+    errorFillFields: 'Por favor completa todos los campos.',
+    errorInvalidEmail: 'Correo electrónico inválido.',
+    errorPasswordShort: 'La contraseña debe tener al menos 6 caracteres.',
+    errorInvalidAmount: 'Por favor introduce un monto válido.',
+    errorNameRequired: 'Por favor introduce un nombre.',
+    errorGeneric: 'Ocurrió un error, inténtalo de nuevo.',
+    errorPhotoPermission: 'Se requiere acceso a las fotos.',
+    errorCameraPermission: 'Se requiere acceso a la cámara.',
+    errorUserNotFound: 'Usuario no encontrado.',
+  },
+
+  de: {
+    appName: 'Poketo',
+    resetPasswordVerifying: 'Link wird überprüft...',
+    resetLinkInvalid: 'Dieser Link zum Zurücksetzen ist ungültig oder abgelaufen. Fordere einen neuen an.',
+otpCodeLabel: 'Per E-Mail erhaltener Code',
+otpCodePlaceholder: '123456',
+    profileTitle: 'Mein Profil',
+    personalInfo: 'Persönliche Informationen',
+    usernameFieldLabel: 'Benutzername',
+    emailFieldLabel: 'E-Mail',
+    changePasswordTitle: 'Passwort ändern',
+    currentPasswordLabel: 'Aktuelles Passwort',
+    newPasswordFieldLabel: 'Neues Passwort',
+    confirmPasswordLabel: 'Passwort bestätigen',
+    savePersonalInfo: 'Informationen speichern',
+    savePasswordButton: 'Passwort aktualisieren',
+    passwordUpdated: 'Passwort aktualisiert!',
+    infoUpdated: 'Informationen aktualisiert!',
+    errorPasswordMismatch: 'Die Passwörter stimmen nicht überein.',
+    profileMenuItem: 'Profil',
+
+    errorAcceptTerms: "Bitte akzeptiere die Datenschutzrichtlinie und die Nutzungsbedingungen.",
+acceptTermsPrefix: "Ich akzeptiere die",
+privacyPolicyLink: "Datenschutzrichtlinie",
+andConnector: "und die",
+termsOfUseLink: "Nutzungsbedingungen",
+
+    historyTitle: 'Verlauf',
+    historyLoans: 'Verliehen',
+    historyDebts: 'Schulden',
+
+    statusLabel: 'Status',
+    statusEnCours: 'In Bearbeitung',
+    statusEnAttenteValidation: 'Wartet auf Bestätigung',
+    statusPaye: 'Bezahlt',
+    changeStatus: 'Status ändern',
+    overdueNotifTitle: 'Überfällig',
+    overdueNotifBody: '{name} hat das Fälligkeitsdatum überschritten.',
+
+    errorDueDateRequired: 'Das Fälligkeitsdatum ist erforderlich.',
+
+    loginTitle: 'Anmelden',
+    loginSubtitle: 'Willkommen zurück',
+    emailLabel: 'E-Mail',
+    emailPlaceholder: 'du@beispiel.com',
+    emailOrUsernameLabel: 'E-Mail oder Benutzername',
+    emailOrUsernamePlaceholder: 'du@beispiel.com oder Benutzername',
+    passwordLabel: 'Passwort',
+    passwordPlaceholder: '••••••••',
+    loginButton: 'Anmelden',
+    noAccount: 'Noch kein Konto?',
+    createAccount: 'Konto erstellen',
+    signupTitle: 'Konto erstellen',
+    signupSubtitle: 'In wenigen Sekunden dabei sein',
+    usernameLabel: 'Benutzername',
+    usernamePlaceholder: 'z. B. Poketo_user',
+    signupButton: 'Registrieren',
+    haveAccount: 'Schon ein Konto?',
+    backToLogin: 'Anmelden',
+    forgotPassword: 'Passwort vergessen?',
+    forgotPasswordTitle: 'Passwort vergessen',
+    forgotPasswordSubtitle: 'Gib deine E-Mail ein, um einen Link zum Zurücksetzen zu erhalten.',
+    sendResetLink: 'Link senden',
+    resetLinkSent: 'E-Mail gesendet! Überprüfe dein Postfach.',
+    newPasswordLabel: 'Neues Passwort',
+    resetPasswordTitle: 'Passwort zurücksetzen',
+    resetPasswordSubtitle: 'Wähle ein neues Passwort für dein Konto.',
+    resetPasswordButton: 'Zurücksetzen',
+    resetPasswordSuccess: 'Passwort aktualisiert! Du kannst dich jetzt anmelden.',
+    verifyEmailTitle: 'Bestätige dein Konto',
+    verifyEmailMessage: 'Eine Bestätigungs-E-Mail wurde an {email} gesendet. Klicke auf den Link, um dein Konto zu aktivieren, und melde dich anschließend an.',
+
+    balanceGlobal: 'Gesamtsaldo',
+    onMeDoit: 'Man schuldet mir',
+    jeDois: 'Ich schulde',
+    recentOps: 'Letzte Aktivitäten',
+    results: 'Ergebnisse',
+    searchPlaceholder: 'Namen oder Notiz suchen...',
+    noOpsYet: 'Noch keine Transaktionen. Füge deine erste mit dem Button unten hinzu.',
+    noResults: 'Keine Transaktion entspricht deiner Suche.',
+    loan: 'Kredit',
+    debt: 'Schuld',
+    dueToday: 'Heute fällig',
+    overdue: 'Überfällig',
+    dueInDays: 'Fällig in {n} T',
+    addButton: 'Hinzufügen',
+
+    addTitle: 'Neue Transaktion',
+    selectType: 'Typ auswählen',
+    iLent: 'Ich habe verliehen',
+    iBorrowed: 'Ich habe geliehen',
+    amount: 'Betrag',
+    contactLabel: 'An wen? / Von wem?',
+    contactPlaceholder: 'Name eingeben... (z. B. Paul)',
+    dueDateLabel: 'Fälligkeitsdatum',
+    dueDateHint: 'Automatische Erinnerung 5 Tage vorher und Warnung am selben Tag.',
+    optionsLabel: 'Optionen (optional)',
+    addNote: 'Notiz / Erklärung hinzufügen',
+    notePlaceholder: 'z. B. für das Restaurant geliehen',
+    addPhoto: 'Foto aufnehmen / hinzufügen',
+    changePhoto: 'Foto ändern',
+    takePhoto: 'Foto aufnehmen',
+    chooseFromLibrary: 'Aus Galerie wählen',
+    removePhoto: 'Foto entfernen',
+    validate: 'Bestätigen',
+    removeDate: 'Entfernen',
+    selectDate: 'Datum auswählen',
+
+    detailTitle: 'Transaktionsdetails',
+    editTitle: 'Bearbeiten',
+    addedOn: 'Hinzugefügt am',
+    save: 'Speichern',
+    cancel: 'Abbrechen',
+    deleteConfirmTitle: 'Diese Transaktion löschen?',
+    deleteConfirmMessage: 'Diese Aktion ist endgültig und kann nicht rückgängig gemacht werden.',
+    deleteConfirmYes: 'Löschen',
+    deleteConfirmNo: 'Abbrechen',
+    notFound: 'Transaktion nicht gefunden.',
+
+    settingsTitle: 'Einstellungen',
+    currencyLabel: 'Währung',
+    languageLabel: 'Sprache',
+    systemLanguage: 'Automatisch (System)',
+    logout: 'Abmelden',
+
+    errorFillFields: 'Bitte fülle alle Felder aus.',
+    errorInvalidEmail: 'Ungültige E-Mail-Adresse.',
+    errorPasswordShort: 'Das Passwort muss mindestens 6 Zeichen lang sein.',
+    errorInvalidAmount: 'Bitte gib einen gültigen Betrag ein.',
+    errorNameRequired: 'Bitte gib einen Namen ein.',
+    errorGeneric: 'Ein Fehler ist aufgetreten, versuche es erneut.',
+    errorPhotoPermission: 'Zugriff auf Fotos ist erforderlich.',
+    errorCameraPermission: 'Zugriff auf die Kamera ist erforderlich.',
+    errorUserNotFound: 'Benutzer nicht gefunden.',
   },
 };
 

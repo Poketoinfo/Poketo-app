@@ -9,7 +9,6 @@ import {
   Text,
   TextInput,
   View,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,16 +24,21 @@ import { daysUntil } from '../lib/date';
 import Logo from '../components/Logo';
 import {
   Transaction,
-  computeBalances,
   fetchTransactions,
+  checkOverdueTransactions,
 } from '../lib/transactions';
-
-const { height } = Dimensions.get('window');
+import { notifyOverdue } from '../lib/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
+const STATUS_COLORS: Record<string, string> = {
+  en_cours: colors.primary,
+  en_attente_validation: '#E08E0B',
+  paye: colors.success,
+};
+
 export default function HomeScreen({ navigation }: Props) {
-  const { currency } = useCurrency();
+  const { currency, convert } = useCurrency();
   const { t } = useLanguage();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +51,15 @@ export default function HomeScreen({ navigation }: Props) {
       const data = await fetchTransactions();
       setTransactions(data);
       setErrorMsg('');
+
+      // Vérifie les échéances dépassées et passe leur statut en "en attente"
+      const newlyOverdue = await checkOverdueTransactions(data);
+      if (newlyOverdue.length > 0) {
+        setTransactions((prev) =>
+          prev.map((tr) => newlyOverdue.find((o) => o.id === tr.id) ?? tr)
+        );
+        newlyOverdue.forEach((tr) => notifyOverdue(tr.contact_name, t));
+      }
     } catch (e: any) {
       setErrorMsg(e.message ?? t('errorGeneric'));
     } finally {
@@ -67,7 +80,23 @@ export default function HomeScreen({ navigation }: Props) {
     load();
   };
 
-  const { onMeDoit, jeDois, balanceGlobale } = computeBalances(transactions);
+  // Soldes convertis dans la devise active à partir de la devise d'origine
+  // de chaque transaction (chaque transaction garde sa devise de saisie).
+  const { onMeDoit, jeDois, balanceGlobale } = useMemo(() => {
+    const onMeDoitSum = transactions
+      .filter((t) => t.type === 'pret')
+      .reduce((sum, t) => sum + convert(t.amount, t.currency), 0);
+
+    const jeDoisSum = transactions
+      .filter((t) => t.type === 'dette')
+      .reduce((sum, t) => sum + convert(t.amount, t.currency), 0);
+
+    return {
+      onMeDoit: onMeDoitSum,
+      jeDois: jeDoisSum,
+      balanceGlobale: onMeDoitSum - jeDoisSum,
+    };
+  }, [transactions, currency]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -79,10 +108,17 @@ export default function HomeScreen({ navigation }: Props) {
     );
   }, [transactions, search]);
 
+  // Couleur du montant : rouge si négatif, vert si positif ou nul
+  const balanceColor = balanceGlobale >= 0 ? colors.success : colors.error;
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Top Navigation Bar - Fixed */}
       <View style={styles.topBar}>
+        <View style={styles.brandRow}>
+          <Logo size={28} />
+          <Text style={styles.brand}>{t('appName')}</Text>
+        </View>
         <Pressable
           onPress={() => navigation.navigate('Settings')}
           style={styles.iconButton}
@@ -90,11 +126,6 @@ export default function HomeScreen({ navigation }: Props) {
         >
           <Ionicons name="settings-outline" size={22} color={colors.text} />
         </Pressable>
-        <View style={styles.brandRow}>
-          <Logo size={28} />
-          <Text style={styles.brand}>{t('appName')}</Text>
-        </View>
-        <View style={styles.iconButton} />
       </View>
 
       {/* Search Bar - Fixed */}
@@ -118,35 +149,36 @@ export default function HomeScreen({ navigation }: Props) {
 
       {/* Fixed Content (Balance & Summary Cards) */}
       <View style={styles.fixedContent}>
-        {/* Balance Card */}
-        <LinearGradient
-          colors={[colors.primary, colors.primaryDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.balanceCard}
-        >
+        {/* Balance Card - fond neutre, plus de gradient bleu */}
+        <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>{t('balanceGlobal').toUpperCase()}</Text>
-          <Text style={styles.balanceValue}>
+          <Text style={[styles.balanceValue, { color: balanceColor }]}>
             {formatAmount(balanceGlobale, currency)}
           </Text>
-        </LinearGradient>
+        </View>
 
-        {/* Summary Cards */}
+        {/* Summary Cards - cliquables vers l'historique */}
         <View style={styles.row}>
-          <View style={[styles.miniCard, { marginRight: spacing.sm }]}>
+          <Pressable
+            style={[styles.miniCard, { marginRight: spacing.sm }]}
+            onPress={() => navigation.navigate('TransactionHistory', { type: 'pret' })}
+          >
             <View style={[styles.miniDot, { backgroundColor: colors.success }]} />
             <Text style={styles.miniLabel}>{t('onMeDoit')}</Text>
             <Text style={[styles.miniValue, { color: colors.success }]}>
               {formatAmount(onMeDoit, currency)}
             </Text>
-          </View>
-          <View style={styles.miniCard}>
+          </Pressable>
+          <Pressable
+            style={styles.miniCard}
+            onPress={() => navigation.navigate('TransactionHistory', { type: 'dette' })}
+          >
             <View style={[styles.miniDot, { backgroundColor: colors.error }]} />
             <Text style={styles.miniLabel}>{t('jeDois')}</Text>
             <Text style={[styles.miniValue, { color: colors.error }]}>
               {formatAmount(-jeDois, currency)}
             </Text>
-          </View>
+          </Pressable>
         </View>
 
         {/* Transactions List Header */}
@@ -205,25 +237,40 @@ export default function HomeScreen({ navigation }: Props) {
                       {t2.type === 'pret' ? t('loan') : t('debt')}
                       {t2.note ? ` · ${t2.note}` : ''}
                     </Text>
-                    {(isUrgent || isOverdue) && (
-                      <Text
-                        style={[
-                          styles.dueBadge,
-                          { color: isOverdue ? colors.error : colors.primary },
-                        ]}
-                      >
-                        {isOverdue
-                          ? t('overdue')
-                          : remaining === 0
-                          ? t('dueToday')
-                          : t('dueInDays', { n: remaining })}
+                    <View style={styles.badgeRow}>
+                      {(isUrgent || isOverdue) && t2.status === 'en_cours' && (
+                        <Text
+                          style={[
+                            styles.dueBadge,
+                            { color: isOverdue ? colors.error : colors.primary },
+                          ]}
+                        >
+                          {isOverdue
+                            ? t('overdue')
+                            : remaining === 0
+                            ? t('dueToday')
+                            : t('dueInDays', { n: remaining })}
+                        </Text>
+                      )}
+                      <Text style={[styles.statusBadge, { color: STATUS_COLORS[t2.status] }]}>
+                        {t2.status === 'en_cours'
+                          ? t('statusEnCours')
+                          : t2.status === 'en_attente_validation'
+                          ? t('statusEnAttenteValidation')
+                          : t('statusPaye')}
                       </Text>
-                    )}
+                    </View>
                   </View>
 
                   <View style={styles.operationRight}>
                     <Text style={[styles.operationAmount, { color: accent }]}>
-                      {formatAmount(t2.type === 'pret' ? t2.amount : -t2.amount, currency)}
+                      {formatAmount(
+                        convert(
+                          t2.type === 'pret' ? t2.amount : -t2.amount,
+                          t2.currency
+                        ),
+                        currency
+                      )}
                     </Text>
                     <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                   </View>
@@ -318,12 +365,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     alignItems: 'center',
     marginBottom: spacing.md,
-    ...shadow.fab,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow.soft,
   },
   balanceLabel: {
     ...typography.small,
-    color: colors.white,
-    opacity: 0.85,
+    color: colors.textSecondary,
     letterSpacing: 1.5,
     fontWeight: '700',
     marginBottom: spacing.xs,
@@ -332,7 +381,6 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '800',
     letterSpacing: -0.5,
-    color: colors.white,
   },
   row: {
     flexDirection: 'row',
@@ -429,10 +477,19 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: 2,
+    flexWrap: 'wrap',
+  },
   dueBadge: {
     ...typography.small,
     fontWeight: '700',
-    marginTop: 2,
+  },
+  statusBadge: {
+    ...typography.small,
+    fontWeight: '700',
   },
   operationRight: {
     alignItems: 'flex-end',

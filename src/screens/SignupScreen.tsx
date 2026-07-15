@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -9,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Linking from 'expo-linking';
+import * as ExpoLinking from 'expo-linking';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import Logo from '../components/Logo';
@@ -22,11 +23,15 @@ import { useLanguage } from '../lib/i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
 
+const PRIVACY_URL = 'https://poketo.info/confidentialite.html';
+const TERMS_URL = 'https://poketo.info/conditions.html';
+
 export default function SignupScreen({ navigation }: Props) {
   const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -39,6 +44,9 @@ export default function SignupScreen({ navigation }: Props) {
     }
     if (password.length < 6) {
       return t('errorPasswordShort');
+    }
+    if (!acceptedTerms) {
+      return t('errorAcceptTerms');
     }
     return '';
   };
@@ -55,7 +63,7 @@ export default function SignupScreen({ navigation }: Props) {
       password,
       options: {
         data: { username: username.trim() },
-        emailRedirectTo: Linking.createURL('login'),
+        emailRedirectTo: ExpoLinking.createURL('login'),
       },
     });
 
@@ -72,6 +80,9 @@ export default function SignupScreen({ navigation }: Props) {
       navigation.replace('Home');
     }
   };
+
+  const openPrivacy = () => Linking.openURL(PRIVACY_URL);
+  const openTerms = () => Linking.openURL(TERMS_URL);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -111,6 +122,26 @@ export default function SignupScreen({ navigation }: Props) {
               value={password}
               onChangeText={setPassword}
             />
+
+            <Pressable
+              style={styles.checkboxRow}
+              onPress={() => setAcceptedTerms((prev) => !prev)}
+              hitSlop={8}
+            >
+              <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+                {acceptedTerms && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.checkboxText}>
+                {t('acceptTermsPrefix')}{' '}
+                <Text style={styles.linkText} onPress={openPrivacy}>
+                  {t('privacyPolicyLink')}
+                </Text>{' '}
+                {t('andConnector')}{' '}
+                <Text style={styles.linkText} onPress={openTerms}>
+                  {t('termsOfUseLink')}
+                </Text>
+              </Text>
+            </Pressable>
 
             {!!error && <Text style={styles.error}>{error}</Text>}
 
@@ -161,6 +192,44 @@ const styles = StyleSheet.create({
   },
   form: {
     marginBottom: spacing.lg,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: colors.textSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  checkmark: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 14,
+  },
+  checkboxText: {
+    ...typography.small,
+    color: colors.textSecondary,
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  linkText: {
+    color: colors.primary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   error: {
     color: colors.error,

@@ -10,7 +10,7 @@ import React, {
 import { LanguageCode, translate } from './translations';
 
 const STORAGE_KEY = 'poketo:language';
-const SUPPORTED: LanguageCode[] = ['fr', 'en', 'mg'];
+const SUPPORTED: LanguageCode[] = ['fr', 'en', 'mg', 'es', 'de'];
 
 function detectSystemLanguage(): LanguageCode {
   const locales = Localization.getLocales();

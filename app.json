@@ -18,7 +18,11 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.ielys.poklyapp"
+      "package": "com.ielys.poklyapp",
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,9 +40,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "5f17116d-7c87-4c54-8a17-ec95a3eb655c"
+        "projectId": "b598e976-ae94-4f9e-ae62-f57caa31b3bb"
       }
     },
-    "owner": "ielys"
+    "owner": "devart1996"
   }
 }

@@ -31,15 +31,19 @@ import { useLanguage } from '../lib/i18n/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddTransaction'>;
 
-export default function AddTransactionScreen({ navigation }: Props) {
+export default function AddTransactionScreen({ navigation, route }: Props) {
   const { currency } = useCurrency();
   const { t } = useLanguage();
   const currencySymbol = CURRENCIES[currency].symbol;
-  const [type, setType] = useState<TransactionType>('pret');
+
+  // Si l'écran est ouvert depuis l'historique "Prêts" ou "Dettes", le type
+  // est imposé et non modifiable.
+  const fixedType = route.params?.fixedType;
+
+  const [type, setType] = useState<TransactionType>(fixedType ?? 'pret');
   const [amount, setAmount] = useState('');
   const [contactName, setContactName] = useState('');
   const [note, setNote] = useState('');
-  const [showNoteField, setShowNoteField] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -56,6 +60,10 @@ export default function AddTransactionScreen({ navigation }: Props) {
     }
     if (!numericAmount || numericAmount <= 0) {
       setError(t('errorInvalidAmount'));
+      return;
+    }
+    if (!dueDate) {
+      setError(t('errorDueDateRequired'));
       return;
     }
 
@@ -75,20 +83,19 @@ export default function AddTransactionScreen({ navigation }: Props) {
       await addTransaction({
         type,
         amount: numericAmount,
+        currency, // devise active au moment de la saisie
         contact_name: contactName.trim(),
         note: note.trim() || null,
         photo_url: photoUrl,
         due_date: dueDate,
       });
 
-      if (dueDate) {
-        await scheduleDueDateReminders({
-          contactName: contactName.trim(),
-          amount: numericAmount,
-          type,
-          dueDateISO: dueDate,
-        });
-      }
+      await scheduleDueDateReminders({
+        contactName: contactName.trim(),
+        amount: numericAmount,
+        type,
+        dueDateISO: dueDate,
+      });
 
       navigation.goBack();
     } catch (e: any) {
@@ -104,64 +111,78 @@ export default function AddTransactionScreen({ navigation }: Props) {
         <Pressable onPress={() => navigation.goBack()} hitSlop={10}>
           <Ionicons name="close" size={26} color={colors.text} />
         </Pressable>
-        <Text style={styles.topTitle}>{t('addTitle')}</Text>
+        <Text style={styles.topTitle}>
+          {fixedType === 'pret'
+            ? t('iLent')
+            : fixedType === 'dette'
+            ? t('iBorrowed')
+            : t('addTitle')}
+        </Text>
         <View style={{ width: 26 }} />
       </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.label}>{t('selectType')}</Text>
-          <View style={styles.typeRow}>
-            <Pressable
-              style={[
-                styles.typeButton,
-                type === 'pret' && styles.typeButtonActive,
-              ]}
-              onPress={() => setType('pret')}
-            >
-              <Ionicons
-                name="arrow-up-circle"
-                size={18}
-                color={type === 'pret' ? colors.success : colors.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.typeText,
-                  type === 'pret' && { color: colors.success },
-                ]}
-              >
-                {t('iLent')}
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.typeButton,
-                type === 'dette' && styles.typeButtonActive,
-              ]}
-              onPress={() => setType('dette')}
-            >
-              <Ionicons
-                name="arrow-down-circle"
-                size={18}
-                color={type === 'dette' ? colors.error : colors.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.typeText,
-                  type === 'dette' && { color: colors.error },
-                ]}
-              >
-                {t('iBorrowed')}
-              </Text>
-            </Pressable>
-          </View>
+          {/* Type - masqué si imposé depuis l'historique */}
+          {!fixedType && (
+            <>
+              <Text style={styles.label}>{t('selectType')}</Text>
+              <View style={styles.typeRow}>
+                <Pressable
+                  style={[
+                    styles.typeButton,
+                    type === 'pret' && styles.typeButtonActive,
+                  ]}
+                  onPress={() => setType('pret')}
+                >
+                  <Ionicons
+                    name="arrow-up-circle"
+                    size={18}
+                    color={type === 'pret' ? colors.success : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.typeText,
+                      type === 'pret' && { color: colors.success },
+                    ]}
+                  >
+                    {t('iLent')}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.typeButton,
+                    type === 'dette' && styles.typeButtonActive,
+                  ]}
+                  onPress={() => setType('dette')}
+                >
+                  <Ionicons
+                    name="arrow-down-circle"
+                    size={18}
+                    color={type === 'dette' ? colors.error : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.typeText,
+                      type === 'dette' && { color: colors.error },
+                    ]}
+                  >
+                    {t('iBorrowed')}
+                  </Text>
+                </Pressable>
+              </View>
+            </>
+          )}
 
+          {/* Montant */}
           <Text style={styles.label}>{t('amount')}</Text>
           <View style={styles.amountRow}>
             <TextInput
@@ -173,8 +194,10 @@ export default function AddTransactionScreen({ navigation }: Props) {
               onChangeText={setAmount}
               autoFocus
             />
+            <Text style={styles.amountSuffix}>{currencySymbol}</Text>
           </View>
 
+          {/* Contact */}
           <TextField
             label={t('contactLabel')}
             placeholder={t('contactPlaceholder')}
@@ -182,6 +205,15 @@ export default function AddTransactionScreen({ navigation }: Props) {
             onChangeText={setContactName}
           />
 
+          {/* Note - directement sous "À qui ?" */}
+          <TextField
+            label={t('addNote')}
+            placeholder={t('notePlaceholder')}
+            value={note}
+            onChangeText={setNote}
+          />
+
+          {/* Date d'échéance - obligatoire */}
           <DueDatePicker
             label={t('dueDateLabel')}
             value={dueDate}
@@ -189,22 +221,8 @@ export default function AddTransactionScreen({ navigation }: Props) {
           />
           {!!dueDate && <Text style={styles.hint}>{t('dueDateHint')}</Text>}
 
-          <Text style={styles.label}>{t('optionsLabel')}</Text>
-
-          {showNoteField ? (
-            <TextField
-              label={t('addNote')}
-              placeholder={t('notePlaceholder')}
-              value={note}
-              onChangeText={setNote}
-            />
-          ) : (
-            <Pressable style={styles.optionRow} onPress={() => setShowNoteField(true)}>
-              <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-              <Text style={styles.optionText}>{t('addNote')}</Text>
-            </Pressable>
-          )}
-
+          {/* Photo - sous la date */}
+          <Text style={styles.label}>{t('addPhoto')}</Text>
           <PhotoPicker
             photoUri={photoUri}
             onChange={setPhotoUri}
@@ -301,17 +319,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     color: colors.textSecondary,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  optionText: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
   },
   hint: {
     ...typography.small,
